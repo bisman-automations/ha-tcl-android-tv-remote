@@ -1,0 +1,90 @@
+name: Draft release
+
+# On every push to main, create or refresh a draft GitHub release for the
+# version in manifest.json, with notes from that version's CHANGELOG.md section
+# and the integration zip attached. Publishing the draft creates the tag.
+# Versions that are already published are left alone.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: draft-release
+  cancel-in-progress: true
+
+jobs:
+  draft:
+    name: Draft release
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ZIP: ${{ github.workspace }}/tcl-android-tv-remote.zip
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Read version
+        id: version
+        run: |
+          version=$(jq -r .version custom_components/tcl_android_tv_remote/manifest.json)
+          echo "tag=v${version}" >> "$GITHUB_OUTPUT"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Check existing release
+        id: existing
+        run: |
+          state=$(gh release view "${{ steps.version.outputs.tag }}" --json isDraft --jq 'if .isDraft then "draft" else "published" end' 2>/dev/null || echo none)
+          echo "state=${state}" >> "$GITHUB_OUTPUT"
+          echo "Release ${{ steps.version.outputs.tag }}: ${state}"
+
+      - name: Extract release notes
+        if: steps.existing.outputs.state != 'published'
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          awk -v v="$version" '
+            $0 ~ "^## \\[" v "\\]" { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md | sed '/./,$!d' > notes.md
+          if [ ! -s notes.md ]; then
+            echo "::error::No '## [${version}]' section in CHANGELOG.md"
+            exit 1
+          fi
+          cat notes.md
+
+      - name: Build zip
+        if: steps.existing.outputs.state != 'published'
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, zipfile
+          root = pathlib.Path("custom_components")
+          with zipfile.ZipFile(os.environ["ZIP"], "w", zipfile.ZIP_DEFLATED) as zf:
+              for path in sorted((root / "tcl_android_tv_remote").rglob("*")):
+                  if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc":
+                      zf.write(path, path.relative_to(root))
+          PY
+          ls -l "$ZIP"
+          python3 -m zipfile -l "$ZIP"
+
+      - name: Create or update draft
+        if: steps.existing.outputs.state != 'published'
+        run: |
+          tag="${{ steps.version.outputs.tag }}"
+          run() {
+            if ! out=$("$@" 2>&1); then
+              echo "::error title=Draft release failed::$(echo "$out" | tr '\n' ' ')"
+              exit 1
+            fi
+            echo "$out"
+          }
+          if [ "${{ steps.existing.outputs.state }}" = "draft" ]; then
+            run gh release edit "$tag" --draft --title "$tag" --notes-file notes.md --target "$GITHUB_SHA"
+            run gh release upload "$tag" "$ZIP" --clobber
+          else
+            run gh release create "$tag" "$ZIP" --draft --title "$tag" --notes-file notes.md --target "$GITHUB_SHA"
+          fi

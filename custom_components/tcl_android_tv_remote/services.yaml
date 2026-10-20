@@ -1,0 +1,52 @@
+refresh_hdmi:
+  name: Refresh HDMI sources
+  description: Reconnect ADB if needed and rediscover HDMI inputs on the TV.
+  target:
+    entity:
+      integration: tcl_android_tv_remote
+      domain: media_player
+
+adb_command:
+  name: Run ADB command
+  description: >-
+    Run a shell command on the TV over ADB and return its output (admin only,
+    advanced). Requires ADB enabled.
+  target:
+    entity:
+      integration: tcl_android_tv_remote
+      domain: media_player
+  fields:
+    command:
+      name: Command
+      description: Shell command to run (without the "adb shell" prefix).
+      required: true
+      example: dumpsys tv_input
+      selector:
+        text:
+
+adb_pair:
+  name: ADB wireless pair
+  description: >-
+    Pair with the TV using Android 11+ Wireless debugging (pairing port + code
+    from the TV screen), then switch the integration to Wireless debugging and
+    reload it. Admin only.
+  target:
+    entity:
+      integration: tcl_android_tv_remote
+      domain: media_player
+  fields:
+    pairing_port:
+      name: Pairing port
+      description: Port shown next to the pairing code on the TV (e.g. 38525).
+      required: true
+      selector:
+        number:
+          min: 1024
+          max: 65535
+          mode: box
+    pairing_code:
+      name: Pairing code
+      description: 6-digit code shown on the TV.
+      required: true
+      selector:
+        text:

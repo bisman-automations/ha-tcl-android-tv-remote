@@ -1,0 +1,247 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Device is already configured",
+      "cannot_connect": "Failed to connect",
+      "not_tcl_device": "This Android TV doesn't look like a TCL TV. Use the core Android TV Remote integration, or add it manually here if it is a TCL TV with a custom name.",
+      "reauth_successful": "Re-authentication was successful",
+      "reconfigure_successful": "Re-configuration was successful",
+      "unique_id_mismatch": "Please ensure you reconfigure against the same device."
+    },
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication — wrong pairing code",
+      "pair_failed": "Wireless debugging pairing failed: {detail}",
+      "unknown": "Unexpected error"
+    },
+    "flow_title": "{name}",
+    "step": {
+      "user": {
+        "data": {
+          "host": "Host"
+        },
+        "data_description": {
+          "host": "The hostname or IP address of the TV."
+        },
+        "description": "Enter the IP address of the TCL TV you want to add to Home Assistant. It will turn on and show a pairing code that you will enter on the next screen."
+      },
+      "reconfigure": {
+        "data": {
+          "host": "Host"
+        },
+        "data_description": {
+          "host": "The hostname or IP address of the TV."
+        },
+        "description": "Update the IP address of this TV."
+      },
+      "pair": {
+        "data": {
+          "pin": "PIN"
+        },
+        "data_description": {
+          "pin": "Pairing code displayed on the TV."
+        },
+        "description": "Enter the pairing code displayed on {name}."
+      },
+      "adb_setup": {
+        "title": "HDMI control (ADB)",
+        "description": "HDMI input discovery and switching on {name} use ADB. Choose how Home Assistant connects:",
+        "menu_options": {
+          "adb_wireless": "Wireless debugging (Android 11+, recommended)",
+          "adb_classic": "Network debugging on port 5555",
+          "adb_none": "Skip — no HDMI control"
+        }
+      },
+      "adb_wireless": {
+        "title": "Pair Wireless debugging",
+        "description": "On {name} open Developer options → Wireless debugging → Pair device with pairing code, then enter the port and code shown.",
+        "data": {
+          "connect_port": "Connection port (optional)",
+          "pairing_port": "Pairing port",
+          "pairing_code": "Pairing code"
+        },
+        "data_description": {
+          "connect_port": "Port next to the IP address on the main Wireless debugging screen (e.g. 44491). Leave blank to discover it automatically.",
+          "pairing_port": "Port shown in the Pair device with pairing code dialog (e.g. 41745).",
+          "pairing_code": "6-digit code from the same dialog. Codes expire quickly, so submit right away."
+        }
+      },
+      "reauth_confirm": {
+        "description": "You need to pair again with {name}. It will turn on and show a pairing code that you will enter on the next screen.",
+        "title": "Authentication expired"
+      },
+      "zeroconf_confirm": {
+        "description": "Do you want to add {name} to Home Assistant? It will turn on and show a pairing code that you will enter on the next screen.",
+        "title": "Discovered TCL TV"
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "pair_failed": "Wireless debugging pairing failed: {detail}"
+    },
+    "step": {
+      "init": {
+        "title": "TCL Android TV Remote options",
+        "menu_options": {
+          "settings": "Settings",
+          "apps": "Applications",
+          "adb_pair": "Pair Wireless debugging"
+        }
+      },
+      "settings": {
+        "title": "Settings",
+        "data": {
+          "enable_ime": "Enable IME (detect current app)",
+          "enable_adb": "Enable ADB (HDMI control)",
+          "adb_mode": "ADB connection",
+          "adb_port": "ADB port",
+          "keepalive_interval": "ADB keep-alive interval"
+        },
+        "data_description": {
+          "enable_ime": "Needed to show the current app and send text as keyboard input. Disable it for devices that show 'Use keyboard on mobile device screen' instead of the on-screen keyboard.",
+          "adb_mode": "Wireless debugging must be paired first (Pair Wireless debugging in this menu).",
+          "adb_port": "For Wireless debugging, leave blank to discover the port automatically; it changes whenever the TV restarts and is re-discovered on its own. Network debugging uses 5555.",
+          "keepalive_interval": "How often to check the ADB connection and refresh HDMI / now-playing state."
+        }
+      },
+      "apps": {
+        "title": "Applications",
+        "description": "Pick an application to edit, or Add new. Apps appear in the source list and can be launched from Home Assistant.",
+        "data": {
+          "apps": "Application",
+          "add_default_apps": "Add default TCL / Google TV apps"
+        },
+        "data_description": {
+          "add_default_apps": "Adds Netflix, YouTube, Disney+, Prime Video and other common apps that aren't already in the list."
+        }
+      },
+      "app": {
+        "title": "Configure application",
+        "description": "Configure application ID {app_id}",
+        "data": {
+          "app_delete": "Delete this application",
+          "app_icon": "Application icon",
+          "app_id": "Application ID",
+          "app_name": "Application name"
+        },
+        "data_description": {
+          "app_icon": "Image URL. From the Play Store app page, right click on the icon and select 'Copy image address'. Alternatively upload an image under /config/www/ and use /local/filename.",
+          "app_id": "E.g. {example_app_id} for {example_app_play_store_url}",
+          "app_name": "Name of the application as it should be displayed in Home Assistant."
+        }
+      },
+      "adb_pair": {
+        "title": "Pair Wireless debugging",
+        "description": "On {name} open Developer options → Wireless debugging → Pair device with pairing code, then enter the port and code shown. After pairing, the integration switches to Wireless debugging and reloads.",
+        "data": {
+          "connect_port": "Connection port (optional)",
+          "pairing_port": "Pairing port",
+          "pairing_code": "Pairing code"
+        },
+        "data_description": {
+          "connect_port": "Port next to the IP address on the main Wireless debugging screen (e.g. 44491). Leave blank to discover it automatically.",
+          "pairing_port": "Port shown in the Pair device with pairing code dialog (e.g. 41745).",
+          "pairing_code": "6-digit code from the same dialog. Codes expire quickly, so submit right away."
+        }
+      }
+    }
+  },
+  "selector": {
+    "apps": {
+      "options": {
+        "add_new": "Add new"
+      }
+    },
+    "adb_mode": {
+      "options": {
+        "tls": "Wireless debugging (paired)",
+        "classic": "Network debugging (port 5555)"
+      }
+    }
+  },
+  "issues": {
+    "adb_offline_tls": {
+      "title": "{name}: HDMI control offline",
+      "description": "Home Assistant can't reach {name} over Wireless debugging, so HDMI inputs can't be discovered or switched.\n\n1. Make sure the TV is on and Developer options → Wireless debugging is enabled.\n2. If the TV was reset or debugging authorizations were revoked, re-pair from the integration options (Pair Wireless debugging).\n\nThe connection port is discovered automatically. This issue clears on its own once ADB reconnects.\n\nLast error: {error}"
+    },
+    "adb_offline_classic": {
+      "title": "{name}: HDMI control offline",
+      "description": "Home Assistant can't reach {name} over ADB on port {port}, so HDMI inputs can't be discovered or switched.\n\n1. On the TV open Developer options and turn on Network debugging.\n2. Accept the Allow debugging prompt on the TV (choose Always allow).\n\nThis issue clears on its own once ADB reconnects.\n\nLast error: {error}"
+    }
+  },
+  "exceptions": {
+    "connection_closed": {
+      "message": "Connection to the TV is closed"
+    },
+    "direction_prefix_with_hold_secs": {
+      "message": "Command \"{command}\" combines a direction prefix with hold_secs; specify only one"
+    },
+    "empty_key_code": {
+      "message": "Command \"{command}\" is missing a key code after the direction prefix"
+    },
+    "invalid_channel": {
+      "message": "Channel must be numeric: {media_id}"
+    },
+    "invalid_media_type": {
+      "message": "Invalid media type: {media_type}"
+    },
+    "adb_disabled": {
+      "message": "Can't switch to {source}: ADB (HDMI control) is not enabled for this TV"
+    },
+    "hdmi_switch_failed": {
+      "message": "Could not switch to HDMI source {source}: {error}"
+    },
+    "no_target": {
+      "message": "Select at least one TCL Android TV Remote media player"
+    },
+    "adb_not_enabled": {
+      "message": "{name}: ADB is not enabled for this TV"
+    },
+    "adb_command_failed": {
+      "message": "{name}: ADB command failed: {error}"
+    },
+    "adb_pair_failed": {
+      "message": "{name}: Wireless debugging pairing failed: {error}"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "adb_connected": {
+        "name": "ADB"
+      }
+    },
+    "button": {
+      "find_remote": {
+        "name": "Find remote"
+      },
+      "home": {
+        "name": "Home"
+      },
+      "refresh_hdmi": {
+        "name": "Refresh HDMI"
+      }
+    },
+    "select": {
+      "source": {
+        "name": "Source"
+      }
+    },
+    "sensor": {
+      "current_source": {
+        "name": "Current source"
+      },
+      "adb_status": {
+        "name": "ADB status",
+        "state": {
+          "connected": "Connected",
+          "disconnected": "Disconnected",
+          "unauthorized": "Unauthorized",
+          "offline": "Offline",
+          "timeout": "Timed out",
+          "error": "Error"
+        }
+      }
+    }
+  }
+}

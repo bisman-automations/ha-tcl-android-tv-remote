@@ -1,0 +1,29 @@
+{
+  "domain": "tcl_android_tv_remote",
+  "name": "TCL Android TV Remote",
+  "codeowners": [
+    "@bisman-automations"
+  ],
+  "config_flow": true,
+  "dependencies": [
+    "zeroconf"
+  ],
+  "documentation": "https://github.com/bisman-automations/ha-tcl-android-tv-remote",
+  "integration_type": "device",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/bisman-automations/ha-tcl-android-tv-remote/issues",
+  "loggers": [
+    "adb_shell",
+    "adb_shell_wifi",
+    "androidtvremote2"
+  ],
+  "requirements": [
+    "adb-shell>=0.4.4",
+    "adb-shell-wifi==0.5.0",
+    "androidtvremote2>=0.2.3"
+  ],
+  "version": "1.0.0",
+  "zeroconf": [
+    "_androidtvremote2._tcp.local."
+  ]
+}
