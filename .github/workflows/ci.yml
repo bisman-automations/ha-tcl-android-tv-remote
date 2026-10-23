@@ -15,8 +15,14 @@ concurrency:
 
 jobs:
   tests:
-    name: Unit tests
+    # 3.13 tests the newest Home Assistant that still runs on it (2026.2),
+    # 3.14 the latest release, so API moves in new versions are caught early
+    name: Unit tests (Python ${{ matrix.python }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.13", "3.14"]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -24,7 +30,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.13"
+          python-version: ${{ matrix.python }}
           cache: pip
 
       - name: Install test dependencies

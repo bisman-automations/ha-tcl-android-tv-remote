@@ -11,10 +11,24 @@ from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv, entity_registry as er
-from homeassistant.helpers.service import (
-    async_extract_referenced_entity_ids,
-    async_register_admin_service,
-)
+from homeassistant.helpers.service import async_register_admin_service
+
+try:  # Home Assistant 2025.9+; the old location was removed in 2026.10
+    from homeassistant.helpers.target import (
+        TargetSelection,
+        async_extract_referenced_entity_ids as _extract_referenced,
+    )
+
+    def _referenced_entities(hass: HomeAssistant, call: ServiceCall):
+        return _extract_referenced(hass, TargetSelection(call.data))
+
+except ImportError:  # pragma: no cover - older Home Assistant
+    from homeassistant.helpers.service import (
+        async_extract_referenced_entity_ids as _extract_referenced_legacy,
+    )
+
+    def _referenced_entities(hass: HomeAssistant, call: ServiceCall):
+        return _extract_referenced_legacy(hass, call)
 
 from .const import (
     ADB_MODE_TLS,
@@ -57,7 +71,7 @@ def _target_entries(
 
     Never falls back to "every TV": a call with no matching target is an error.
     """
-    selected = async_extract_referenced_entity_ids(hass, call)
+    selected = _referenced_entities(hass, call)
     entity_reg = er.async_get(hass)
     entries: dict[str, TclAndroidTvRemoteConfigEntry] = {}
     for entity_id in selected.referenced | selected.indirectly_referenced:

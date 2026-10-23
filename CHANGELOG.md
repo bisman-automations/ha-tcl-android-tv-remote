@@ -2,6 +2,14 @@
 
 All notable changes to the **ha-tcl-android-tv-remote** Home Assistant integration will be documented in this file.
 
+## [1.0.2] - 2026-10-23
+
+### Fixes
+* **Home Assistant 2026.10:** the integration failed to load ("Not loaded", and the config flow showed "Invalid handler specified") because a Home Assistant helper it used for actions moved. It now works on 2026.10 and older versions.
+
+### Project
+* Tests run on Python 3.13 and 3.14, so they cover the newest Home Assistant release as well as older ones.
+
 ## [1.0.1] - 2026-10-23
 
 ### Upgrades
