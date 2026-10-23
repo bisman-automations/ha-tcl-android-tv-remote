@@ -138,6 +138,7 @@ class TclAndroidTvRemoteConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for TCL Android TV Remote."""
 
     VERSION = 1
+    MINOR_VERSION = 2
 
     api: AndroidTVRemote
     host: str

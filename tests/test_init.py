@@ -201,3 +201,28 @@ async def test_diagnostics_redacts_host(hass: HomeAssistant) -> None:
     assert diag["adb"]["available"] is True
     assert [s["name"] for s in diag["adb"]["hdmi_sources"]] == ["Apple TV", "HDMI 2"]
     assert diag["source_list"] == ["Apple TV", "HDMI 2"]
+
+
+async def test_migration_removes_old_options(hass: HomeAssistant) -> None:
+    entry = make_entry(
+        {
+            **{k: v for k, v in CLASSIC_OPTIONS.items() if k != CONF_ADB_MODE},
+            "adb_port": 44491,
+            "allowed_sources": ["Apple TV"],
+            "enforce_allowed": True,
+        }
+    )
+    await _setup(hass, entry)
+    assert entry.minor_version == 2
+    assert "allowed_sources" not in entry.options
+    assert "enforce_allowed" not in entry.options
+    # The mode that used to be inferred from the port is now stored
+    assert entry.options[CONF_ADB_MODE] == ADB_MODE_TLS
+    assert entry.state is ConfigEntryState.LOADED
+
+
+async def test_migration_leaves_adb_off_entries_alone(hass: HomeAssistant) -> None:
+    entry = make_entry({CONF_ENABLE_ADB: False, "enforce_allowed": False})
+    await _setup(hass, entry)
+    assert entry.options == {CONF_ENABLE_ADB: False}
+    assert entry.minor_version == 2

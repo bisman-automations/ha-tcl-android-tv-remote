@@ -13,7 +13,14 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv, issue_registry as ir
 from homeassistant.helpers.typing import ConfigType
 
-from .const import ADB_MODE_TLS, CONF_ADB_PORT, CONF_APPS, DOMAIN
+from .const import (
+    ADB_MODE_TLS,
+    CONF_ADB_MODE,
+    CONF_ADB_PORT,
+    CONF_APPS,
+    CONF_ENABLE_ADB,
+    DOMAIN,
+)
 from .coordinator import AdbDataCoordinator, adb_issue_id
 from .helpers import (
     RuntimeData,
@@ -46,6 +53,31 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the integration (register services once)."""
     async_setup_services(hass)
+    return True
+
+
+# Options written by pre-release builds that no longer do anything
+_REMOVED_OPTIONS = ("allowed_sources", "enforce_allowed")
+
+
+async def async_migrate_entry(
+    hass: HomeAssistant, entry: TclAndroidTvRemoteConfigEntry
+) -> bool:
+    """Migrate config entries to the current version."""
+    if entry.version > 1:
+        # Downgrade from a future version
+        return False
+
+    if entry.minor_version < 2:
+        options = {
+            k: v for k, v in entry.options.items() if k not in _REMOVED_OPTIONS
+        }
+        if options.get(CONF_ENABLE_ADB, True) and CONF_ADB_MODE not in options:
+            # Record the mode that was previously inferred from the port
+            options[CONF_ADB_MODE] = get_adb_mode(entry)
+        hass.config_entries.async_update_entry(entry, options=options, minor_version=2)
+        _LOGGER.debug("Migrated %s to version 1.2", entry.title)
+
     return True
 
 

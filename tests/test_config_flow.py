@@ -259,3 +259,74 @@ async def test_options_adb_pair_reachable_and_switches_to_tls(
     assert entry.options[CONF_ADB_MODE] == ADB_MODE_TLS
     assert entry.options[CONF_ADB_PORT] == 44491
     assert entry.options[CONF_ENABLE_ADB] is True
+
+
+async def test_reauth_flow(hass: HomeAssistant, mock_api) -> None:
+    entry = make_entry()
+    entry.add_to_hass(hass)
+    result = await entry.start_reauth_flow(hass)
+    assert result["step_id"] == "reauth_confirm"
+
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+    assert result["step_id"] == "pair"
+    mock_api.async_start_pairing.assert_awaited()
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"pin": "123456"}
+    )
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reauth_successful"
+
+
+async def test_reauth_wrong_pin_stays_on_pair(hass: HomeAssistant, mock_api) -> None:
+    from androidtvremote2 import InvalidAuth
+
+    entry = make_entry()
+    entry.add_to_hass(hass)
+    result = await entry.start_reauth_flow(hass)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+    mock_api.async_finish_pairing.side_effect = InvalidAuth
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"pin": "000000"}
+    )
+    assert result["step_id"] == "pair"
+    assert result["errors"] == {"base": "invalid_auth"}
+
+
+async def test_reconfigure_updates_host(hass: HomeAssistant) -> None:
+    entry = make_entry()
+    entry.add_to_hass(hass)
+    result = await entry.start_reconfigure_flow(hass)
+    assert result["step_id"] == "reconfigure"
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: "192.0.2.20"}
+    )
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    assert entry.data[CONF_HOST] == "192.0.2.20"
+
+
+async def test_reconfigure_rejects_different_tv(hass: HomeAssistant, mock_api) -> None:
+    entry = make_entry()
+    entry.add_to_hass(hass)
+    mock_api.async_get_name_and_mac.return_value = ("Other TV", "AA:BB:CC:DD:EE:FF")
+    result = await entry.start_reconfigure_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: "192.0.2.30"}
+    )
+    assert result["reason"] == "unique_id_mismatch"
+    assert entry.data[CONF_HOST] == HOST
+
+
+async def test_user_flow_cannot_connect(hass: HomeAssistant, mock_api) -> None:
+    from androidtvremote2 import CannotConnect
+
+    mock_api.async_get_name_and_mac.side_effect = CannotConnect
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_HOST: HOST}
+    )
+    assert result["step_id"] == "user"
+    assert result["errors"] == {"base": "cannot_connect"}

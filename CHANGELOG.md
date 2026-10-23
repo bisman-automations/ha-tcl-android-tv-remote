@@ -2,6 +2,15 @@
 
 All notable changes to the **ha-tcl-android-tv-remote** Home Assistant integration will be documented in this file.
 
+## [1.0.1] - 2026-10-23
+
+### Upgrades
+* **Option cleanup:** entries from pre-release builds drop the unused parental-lock options, and the ADB connection type is now stored instead of guessed from the port.
+
+### Project
+* Tests for reauthentication, reconfiguring the IP address, Wireless debugging port discovery and the option migration.
+* Dependabot keeps the GitHub Actions versions up to date.
+
 ## [1.0.0] - 2026-10-23
 
 ### Remote control
