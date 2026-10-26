@@ -1,0 +1,12 @@
+# Test requirements for the newest Home Assistant (CI "newest" and lint jobs).
+# pytest-homeassistant-custom-component pins Home Assistant itself and is left
+# unpinned on purpose, so CI always tests the newest release.
+pytest-homeassistant-custom-component
+# Lint, pinned so it only changes when Dependabot proposes an update.
+ruff==0.17.2
+# Test-only libraries (the integration's runtime requirements are in
+# manifest.json) go below.
+# The integration's runtime requirements (manifest.json), for the tests.
+adb-shell>=0.4.4
+adb-shell-wifi==0.5.0
+androidtvremote2>=0.2.3

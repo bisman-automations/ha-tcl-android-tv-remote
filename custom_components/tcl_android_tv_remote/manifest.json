@@ -2,7 +2,7 @@
   "domain": "tcl_android_tv_remote",
   "name": "TCL Android TV Remote",
   "codeowners": [
-    "@bisman-automations"
+    "@donavanbecker"
   ],
   "config_flow": true,
   "dependencies": [

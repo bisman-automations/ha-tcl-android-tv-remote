@@ -1,5 +1,0 @@
-# Test requirements (the integration's runtime requirements are in manifest.json)
-pytest-homeassistant-custom-component
-adb-shell>=0.4.4
-adb-shell-wifi==0.5.0
-androidtvremote2>=0.2.3

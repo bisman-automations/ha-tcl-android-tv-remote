@@ -1,0 +1,11 @@
+# The oldest Home Assistant this integration supports (hacs.json: 2025.8.0).
+# pytest-homeassistant-custom-component 0.13.272 is Home Assistant 2025.8.3,
+# the newest harness release of 2025.8. It needs Python 3.13 (python-min in
+# .github/workflows/test.yml). Raise this together with hacs.json; see CLAUDE.md.
+pytest-homeassistant-custom-component==0.13.272
+# The integration's runtime requirements (manifest.json), for the tests.
+adb-shell>=0.4.4
+adb-shell-wifi==0.5.0
+androidtvremote2>=0.2.3
+# aiodns 3.x, which this Home Assistant pins, needs pycares 4.
+pycares==4.11.0
