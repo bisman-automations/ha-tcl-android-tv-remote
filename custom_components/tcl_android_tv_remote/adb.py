@@ -272,6 +272,7 @@ def extract_hdmi_sources(
         if existing is None:
             by_port[src.port] = src
             continue
+
         # Prefer non-generic name
         def _score(s: HdmiSource) -> int:
             n = s.name.casefold()
@@ -288,7 +289,9 @@ def extract_hdmi_sources(
     result: list[HdmiSource] = list(by_port.values()) + no_port
     seen_names: set[str] = set()
     unique: list[HdmiSource] = []
-    for src in sorted(result, key=lambda s: (s.port is None, s.port or 0, s.name.lower())):
+    for src in sorted(
+        result, key=lambda s: (s.port is None, s.port or 0, s.name.lower())
+    ):
         key = src.name.casefold()
         if key in seen_names:
             continue
@@ -316,7 +319,9 @@ def extract_media_metadata(dumpsys_media_session: str) -> MediaMetadata | None:
     state = None
     if state_raw:
         digit = re.search(r"(\d+)", state_raw)
-        state = PLAYBACK_STATE_NAMES.get(digit.group(1), state_raw) if digit else state_raw
+        state = (
+            PLAYBACK_STATE_NAMES.get(digit.group(1), state_raw) if digit else state_raw
+        )
     return MediaMetadata(
         title=values.get("title"),
         artist=values.get("artist"),
@@ -599,9 +604,7 @@ class AdbClient:
 
             dumpsys = self.shell("dumpsys tv_input") or ""
             if dumpsys:
-                self._hdmi_sources = extract_hdmi_sources(
-                    dumpsys, self._custom_labels
-                )
+                self._hdmi_sources = extract_hdmi_sources(dumpsys, self._custom_labels)
             self._active_input = extract_active_tv_input(dumpsys)
             if not self._active_input and dumpsys:
                 # Fallback: look for state:1 on passthrough lines
@@ -781,7 +784,10 @@ class AdbClient:
         if not self._active_input:
             return None
         for hdmi in self._hdmi_sources:
-            if hdmi.input_id == self._active_input or hdmi.input_id in self._active_input:
+            if (
+                hdmi.input_id == self._active_input
+                or hdmi.input_id in self._active_input
+            ):
                 return hdmi.name
         return None
 

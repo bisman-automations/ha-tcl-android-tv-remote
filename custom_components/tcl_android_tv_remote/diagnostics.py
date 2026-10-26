@@ -37,7 +37,9 @@ async def async_get_config_entry_diagnostics(
             "available": data.available,
             "status": data.status,
             "last_error": data.last_error,
-            "last_success": data.last_success.isoformat() if data.last_success else None,
+            "last_success": data.last_success.isoformat()
+            if data.last_success
+            else None,
             "active_input": data.active_input,
             "current_source": data.current_source_name,
             "hdmi_sources": [

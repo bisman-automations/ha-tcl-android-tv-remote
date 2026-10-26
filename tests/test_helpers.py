@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from homeassistant.core import HomeAssistant
 from zeroconf import ServiceStateChange
 
 from custom_components.tcl_android_tv_remote.const import (
@@ -19,6 +18,7 @@ from custom_components.tcl_android_tv_remote.helpers import (
     discover_pairing_port,
     get_adb_mode,
 )
+from homeassistant.core import HomeAssistant
 
 from .conftest import HOST, make_entry
 

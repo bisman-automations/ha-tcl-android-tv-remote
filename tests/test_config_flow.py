@@ -7,12 +7,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from homeassistant import config_entries
-from homeassistant.const import CONF_HOST
-from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResultType
-from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
-
 from custom_components.tcl_android_tv_remote.const import (
     ADB_MODE_CLASSIC,
     ADB_MODE_TLS,
@@ -23,6 +17,11 @@ from custom_components.tcl_android_tv_remote.const import (
     CONF_ENABLE_ADB,
     DOMAIN,
 )
+from homeassistant import config_entries
+from homeassistant.const import CONF_HOST
+from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
 from .conftest import HOST, MAC, make_entry
 

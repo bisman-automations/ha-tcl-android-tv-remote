@@ -6,9 +6,6 @@ from collections.abc import Generator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
-from homeassistant.const import CONF_HOST, CONF_MAC, CONF_NAME
-
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.tcl_android_tv_remote.const import (
@@ -18,6 +15,7 @@ from custom_components.tcl_android_tv_remote.const import (
     CONF_ENABLE_ADB,
     DOMAIN,
 )
+from homeassistant.const import CONF_HOST, CONF_MAC, CONF_NAME
 
 HOST = "192.0.2.10"
 MAC = "1A:2B:3C:4D:5E:6F"
@@ -44,9 +42,7 @@ def mock_api() -> Generator[MagicMock]:
     api.current_app = "com.netflix.ninja"
     api.volume_info = {"level": 10, "max": 100, "muted": False}
     with (
-        patch(
-            "custom_components.tcl_android_tv_remote.create_api", return_value=api
-        ),
+        patch("custom_components.tcl_android_tv_remote.create_api", return_value=api),
         patch(
             "custom_components.tcl_android_tv_remote.config_flow.create_api",
             return_value=api,

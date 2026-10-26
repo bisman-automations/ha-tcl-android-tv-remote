@@ -18,7 +18,14 @@ from .helpers import TclAndroidTvRemoteConfigEntry
 
 PARALLEL_UPDATES = 0
 
-ADB_STATUSES = ["connected", "disconnected", "unauthorized", "offline", "timeout", "error"]
+ADB_STATUSES = [
+    "connected",
+    "disconnected",
+    "unauthorized",
+    "offline",
+    "timeout",
+    "error",
+]
 
 
 async def async_setup_entry(

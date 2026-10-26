@@ -186,7 +186,9 @@ class TclAndroidTvRemoteConfigFlow(ConfigFlow, domain=DOMAIN):
         # pylint: disable-next=home-assistant-step_id-match-method
         return self.async_show_form(
             step_id="reconfigure" if self.source == SOURCE_RECONFIGURE else "user",
-            data_schema=vol.Schema({vol.Required(CONF_HOST, default=default_host): str}),
+            data_schema=vol.Schema(
+                {vol.Required(CONF_HOST, default=default_host): str}
+            ),
             errors=errors,
         )
 
@@ -492,7 +494,8 @@ class TclAndroidTvRemoteOptionsFlowHandler(OptionsFlowWithReload):
 
         apps = [SelectOptionDict(value=APPS_NEW_ID, label="Add new")] + [
             SelectOptionDict(
-                value=k, label=f"{v[CONF_APP_NAME]} ({k})" if v.get(CONF_APP_NAME) else k
+                value=k,
+                label=f"{v[CONF_APP_NAME]} ({k})" if v.get(CONF_APP_NAME) else k,
             )
             for k, v in self._apps.items()
         ]

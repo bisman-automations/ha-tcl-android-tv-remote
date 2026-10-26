@@ -8,7 +8,12 @@ import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_HOST
-from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
+from homeassistant.core import (
+    HomeAssistant,
+    ServiceCall,
+    ServiceResponse,
+    SupportsResponse,
+)
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv, entity_registry as er
 from homeassistant.helpers.service import async_register_admin_service
@@ -29,6 +34,7 @@ except ImportError:  # pragma: no cover - older Home Assistant
 
     def _referenced_entities(hass: HomeAssistant, call: ServiceCall):
         return _extract_referenced_legacy(hass, call)
+
 
 from .const import (
     ADB_MODE_TLS,

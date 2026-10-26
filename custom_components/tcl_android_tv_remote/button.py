@@ -70,7 +70,10 @@ class TclFindRemoteButton(_TclButton):
     async def async_press(self) -> None:
         coordinator = self._runtime.coordinator
         assert coordinator is not None
-        if await coordinator.async_adb_command("input keyevent KEYCODE_PAIRING") is None:
+        if (
+            await coordinator.async_adb_command("input keyevent KEYCODE_PAIRING")
+            is None
+        ):
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
                 translation_key="adb_command_failed",

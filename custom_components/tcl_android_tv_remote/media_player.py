@@ -15,6 +15,7 @@ except ImportError:  # older library versions exported volume as plain dict
         max: int
         muted: bool
 
+
 from homeassistant.components.media_player import (
     BrowseMedia,
     MediaClass,
@@ -46,7 +47,9 @@ async def async_setup_entry(
     async_add_entities([TclAndroidTvRemoteMediaPlayerEntity(api, config_entry)])
 
 
-class TclAndroidTvRemoteMediaPlayerEntity(TclAndroidTvRemoteBaseEntity, MediaPlayerEntity):
+class TclAndroidTvRemoteMediaPlayerEntity(
+    TclAndroidTvRemoteBaseEntity, MediaPlayerEntity
+):
     """TCL Android TV Remote Media Player Entity."""
 
     _attr_name = None  # main feature: entity is named after the device

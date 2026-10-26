@@ -122,8 +122,9 @@ async def _async_discover_port(
     hass: HomeAssistant, host: str, service_type: str, timeout: float
 ) -> int | None:
     """Listen briefly for an mDNS service advertised by host and return its port."""
-    from homeassistant.components import zeroconf as ha_zeroconf
     from zeroconf import ServiceBrowser, ServiceStateChange
+
+    from homeassistant.components import zeroconf as ha_zeroconf
 
     found: dict[str, int] = {}
 

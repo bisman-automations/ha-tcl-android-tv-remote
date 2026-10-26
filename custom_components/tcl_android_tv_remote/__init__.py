@@ -69,9 +69,7 @@ async def async_migrate_entry(
         return False
 
     if entry.minor_version < 2:
-        options = {
-            k: v for k, v in entry.options.items() if k not in _REMOVED_OPTIONS
-        }
+        options = {k: v for k, v in entry.options.items() if k not in _REMOVED_OPTIONS}
         if options.get(CONF_ENABLE_ADB, True) and CONF_ADB_MODE not in options:
             # Record the mode that was previously inferred from the port
             options[CONF_ADB_MODE] = get_adb_mode(entry)

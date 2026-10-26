@@ -7,11 +7,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigEntryState
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-from homeassistant.helpers import entity_registry as er, issue_registry as ir
-
 from custom_components.tcl_android_tv_remote.adb import AdbClient, HdmiSource
 from custom_components.tcl_android_tv_remote.const import (
     ADB_MODE_TLS,
@@ -20,6 +15,10 @@ from custom_components.tcl_android_tv_remote.const import (
     CONF_ENABLE_ADB,
     DOMAIN,
 )
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.helpers import entity_registry as er, issue_registry as ir
 
 from .conftest import CLASSIC_OPTIONS, make_entry
 
@@ -87,14 +86,17 @@ async def test_setup_with_adb_sources(hass: HomeAssistant, mock_api) -> None:
     assert hass.states.get("binary_sensor.tcl_living_room_adb").state == "on"
 
     await hass.services.async_call(
-        "select", "select_option", {"entity_id": SELECT, "option": "HDMI 2"},
+        "select",
+        "select_option",
+        {"entity_id": SELECT, "option": "HDMI 2"},
         blocking=True,
     )
     adb.select_hdmi_by_name.assert_called_with("HDMI 2")
 
     # Apps go over the remote protocol, on the event loop
     await hass.services.async_call(
-        "media_player", "select_source",
+        "media_player",
+        "select_source",
         {"entity_id": MEDIA_PLAYER, "source": "com.netflix.ninja"},
         blocking=True,
     )
@@ -108,7 +110,9 @@ async def test_hdmi_switch_failure_raises(hass: HomeAssistant) -> None:
     await _setup(hass, entry, adb)
     with pytest.raises(HomeAssistantError):
         await hass.services.async_call(
-            "select", "select_option", {"entity_id": SELECT, "option": "HDMI 2"},
+            "select",
+            "select_option",
+            {"entity_id": SELECT, "option": "HDMI 2"},
             blocking=True,
         )
 
@@ -116,8 +120,9 @@ async def test_hdmi_switch_failure_raises(hass: HomeAssistant) -> None:
 async def test_playing_state_ignored_when_off(hass: HomeAssistant, mock_api) -> None:
     entry = make_entry(CLASSIC_OPTIONS)
     adb = _fake_adb()
-    adb.media = MagicMock(playback_state="playing", title="x", artist=None,
-                          album=None, image_url=None)
+    adb.media = MagicMock(
+        playback_state="playing", title="x", artist=None, album=None, image_url=None
+    )
     mock_api.is_on = False
     await _setup(hass, entry, adb)
     assert hass.states.get(MEDIA_PLAYER).state == "off"
@@ -160,13 +165,19 @@ async def test_adb_command_requires_target_and_returns_output(
     # Untargeted calls are rejected by the schema (never "all TVs")
     with pytest.raises(vol.Invalid):
         await hass.services.async_call(
-            DOMAIN, "adb_command", {"command": "echo hi"}, blocking=True,
+            DOMAIN,
+            "adb_command",
+            {"command": "echo hi"},
+            blocking=True,
             return_response=True,
         )
 
     response = await hass.services.async_call(
-        DOMAIN, "adb_command", {"entity_id": MEDIA_PLAYER, "command": "echo hi"},
-        blocking=True, return_response=True,
+        DOMAIN,
+        "adb_command",
+        {"entity_id": MEDIA_PLAYER, "command": "echo hi"},
+        blocking=True,
+        return_response=True,
     )
     assert response == {"results": {"TCL Living Room": "output"}}
 
