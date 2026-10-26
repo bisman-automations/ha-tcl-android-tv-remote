@@ -9,4 +9,4 @@ ruff==0.17.2
 # The integration's runtime requirements (manifest.json), for the tests.
 adb-shell>=0.4.4
 adb-shell-wifi==0.5.0
-androidtvremote2>=0.2.3
+androidtvremote2>=0.3.2
