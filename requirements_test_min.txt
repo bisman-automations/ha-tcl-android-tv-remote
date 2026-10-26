@@ -6,6 +6,6 @@ pytest-homeassistant-custom-component==0.13.272
 # The integration's runtime requirements (manifest.json), for the tests.
 adb-shell>=0.4.4
 adb-shell-wifi==0.5.0
-androidtvremote2>=0.2.3
+androidtvremote2>=0.3.2
 # aiodns 3.x, which this Home Assistant pins, needs pycares 4.
 pycares==4.11.0
