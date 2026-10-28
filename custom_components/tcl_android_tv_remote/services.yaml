@@ -1,10 +1,47 @@
 refresh_hdmi:
   name: Refresh HDMI sources
-  description: Reconnect ADB if needed and rediscover HDMI inputs on the TV.
+  description: >-
+    Reconnect ADB if needed and rediscover HDMI inputs on the TV. Saved inputs
+    the TV no longer reports are dropped, and an input you removed is added
+    back when the TV still reports it.
   target:
     entity:
       integration: tcl_android_tv_remote
       domain: media_player
+
+rebuild_sources:
+  name: Rebuild sources
+  description: >-
+    Forget every saved HDMI input and every custom name stored on the TV, then
+    discover inputs again. Use this after moving HDMI cables, when the source
+    list still shows the old ports or names.
+  target:
+    entity:
+      integration: tcl_android_tv_remote
+      domain: media_player
+
+remove_hdmi_inputs:
+  name: Remove HDMI inputs
+  description: >-
+    Remove saved HDMI inputs by id or name, including the custom name stored
+    on the TV for each one. They leave the source list immediately. Refresh
+    HDMI adds back any input the TV still reports.
+  target:
+    entity:
+      integration: tcl_android_tv_remote
+      domain: media_player
+  fields:
+    inputs:
+      name: Inputs
+      description: >-
+        Input ids or names to remove. A name is the label on the source list
+        (Apple TV), a port (HDMI 2) or the id
+        (com.tcl.tvinput/.TvPassThroughService/HW15).
+      required: true
+      example: HDMI 2
+      selector:
+        text:
+          multiple: true
 
 adb_command:
   name: Run ADB command

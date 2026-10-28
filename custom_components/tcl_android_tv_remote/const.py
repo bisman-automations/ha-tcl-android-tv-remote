@@ -25,11 +25,18 @@ CONF_KEEPALIVE_INTERVAL_DEFAULT: Final = 60
 KEEPALIVE_INTERVAL_MIN: Final = 15
 KEEPALIVE_INTERVAL_MAX: Final = 600
 
+# Saved HDMI inputs (options). Absent until the user rebuilds, removes or refreshes.
+CONF_HDMI_INPUTS: Final = "hdmi_inputs"
+CONF_HDMI_REMOVED: Final = "hdmi_removed"
+
 # Services
 SERVICE_REFRESH_HDMI: Final = "refresh_hdmi"
+SERVICE_REBUILD_SOURCES: Final = "rebuild_sources"
+SERVICE_REMOVE_HDMI_INPUTS: Final = "remove_hdmi_inputs"
 SERVICE_ADB_COMMAND: Final = "adb_command"
 SERVICE_ADB_PAIR: Final = "adb_pair"
 ATTR_COMMAND: Final = "command"
+ATTR_INPUTS: Final = "inputs"
 ATTR_PAIRING_PORT: Final = "pairing_port"
 ATTR_PAIRING_CODE: Final = "pairing_code"
 

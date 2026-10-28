@@ -8,7 +8,7 @@ from pathlib import Path
 import re
 import threading
 from typing import Any
-from urllib.parse import unquote
+from urllib.parse import quote, unquote
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -141,6 +141,22 @@ def _looks_like_physical_input(input_id: str) -> bool:
     return bool(
         re.fullmatch(r"(?i)hw\d+|hdmi\d{1,2}", tail) or "hdmi" in input_id.lower()
     )
+
+
+CUSTOM_LABELS_SETTING = "tv_input_custom_labels"
+
+
+def format_custom_labels(labels: dict[str, str]) -> str:
+    """Encode labels for `settings put secure tv_input_custom_labels`.
+
+    The inverse of `parse_custom_labels`: both sides are URL-encoded so a
+    colon or comma inside a name cannot split the list.
+    """
+    parts: list[str] = []
+    for input_id, label in labels.items():
+        if input_id and label:
+            parts.append(f"{quote(input_id, safe='')},{quote(label, safe='')}")
+    return ":".join(parts)
 
 
 def parse_custom_labels(raw: str | None) -> dict[str, str]:
@@ -371,6 +387,11 @@ class AdbClient:
         return list(self._hdmi_sources)
 
     @property
+    def custom_labels(self) -> dict[str, str]:
+        """TV input id → custom name, from `tv_input_custom_labels`."""
+        return dict(self._custom_labels)
+
+    @property
     def active_input(self) -> str | None:
         return self._active_input
 
@@ -599,8 +620,10 @@ class AdbClient:
     def refresh_state(self) -> None:
         """Refresh HDMI list, active input, and media metadata."""
         with self._lock:
-            raw_labels = self.shell("settings get secure tv_input_custom_labels")
-            self._custom_labels = parse_custom_labels(raw_labels)
+            raw_labels = self.shell(f"settings get secure {CUSTOM_LABELS_SETTING}")
+            # A failed read must not wipe names we already have.
+            if raw_labels is not None:
+                self._custom_labels = parse_custom_labels(raw_labels)
 
             dumpsys = self.shell("dumpsys tv_input") or ""
             if dumpsys:
@@ -629,6 +652,71 @@ class AdbClient:
     def refresh_hdmi(self) -> list[HdmiSource]:
         self.refresh_state()
         return self.hdmi_sources
+
+    def _settings_ok(self, result: str | None) -> bool:
+        if result is None:
+            return False
+        lower = result.lower()
+        return "exception" not in lower and "permission" not in lower
+
+    def clear_custom_labels(self) -> bool:
+        """Delete every custom input name stored on the TV.
+
+        Tries `settings delete` and, if the firmware refuses, writes the
+        literal `null` that `parse_custom_labels` treats as empty.
+        """
+        deleted = self.shell(f"settings delete secure {CUSTOM_LABELS_SETTING}")
+        if not self._settings_ok(deleted):
+            deleted = self.shell(f"settings put secure {CUSTOM_LABELS_SETTING} null")
+        if not self._settings_ok(deleted):
+            return False
+        self._custom_labels = {}
+        return True
+
+    def write_custom_labels(self, labels: dict[str, str]) -> bool:
+        """Replace the TV's custom input names. An empty map deletes them."""
+        if not labels:
+            return self.clear_custom_labels()
+        payload = format_custom_labels(labels)
+        result = self.shell(f"settings put secure {CUSTOM_LABELS_SETTING} '{payload}'")
+        if not self._settings_ok(result):
+            return False
+        self._custom_labels = dict(labels)
+        return True
+
+    def remove_hdmi_inputs(self, input_ids: set[str]) -> bool:
+        """Drop inputs from memory and from the TV's custom-name setting.
+
+        Returns False when the TV setting could not be updated. The in-memory
+        list is still updated so Home Assistant can hide the inputs.
+        """
+        self._hdmi_sources = [
+            source for source in self._hdmi_sources if source.input_id not in input_ids
+        ]
+        self._custom_labels = {
+            input_id: label
+            for input_id, label in self._custom_labels.items()
+            if input_id not in input_ids
+        }
+        if not self.ensure_connected():
+            return False
+        return self.write_custom_labels(self._custom_labels)
+
+    def rebuild_hdmi_sources(self) -> bool:
+        """Clear every custom input name, then rediscover inputs.
+
+        Returns False when the names could not be cleared or ADB is down.
+        Discovery still runs when the TV is reachable, so the list matches
+        whatever the firmware reports after the clear attempt.
+        """
+        if not self.ensure_connected():
+            self._hdmi_sources = []
+            self._custom_labels = {}
+            return False
+        cleared = self.clear_custom_labels()
+        self._hdmi_sources = []
+        self.refresh_state()
+        return cleared
 
     # TCL maps hdmi_port N → hardware id (14+N) on this generation
     _TCL_PORT_TO_HW = {1: 15, 2: 16, 3: 17, 4: 18}

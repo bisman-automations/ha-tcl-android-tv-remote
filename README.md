@@ -22,6 +22,7 @@ Domain: `tcl_android_tv_remote` · Requires Home Assistant 2025.8 or newer.
 - Power, volume, play/pause and app launch over the Android TV Remote protocol
 - HDMI input discovery with the names you set on the TV (or CEC device names), and switching between them
 - One source list for HDMI inputs and your configured apps, on both the media player and a Source dropdown
+- Rebuild or remove saved HDMI inputs after you change which device is plugged into a port
 - Now-playing title / artist and playing / paused state from the TV's media session (via ADB)
 - Wireless debugging (Android 11+) pairing during setup, or classic Network debugging on port 5555, or no ADB at all
 - The Wireless debugging port is found automatically and re-found after the TV restarts
@@ -66,7 +67,8 @@ To enable Developer options, open **Settings → System → About** and press **
 | Current source (sensor) | Active HDMI input or app — ADB only |
 | ADB (binary sensor, diagnostic) | ADB connected / disconnected, with a hint when it isn't — ADB only |
 | ADB status (sensor, diagnostic, disabled by default) | connected / unauthorized / offline / timeout / error — ADB only |
-| Refresh HDMI (button, diagnostic) | Rediscover HDMI inputs — ADB only |
+| Refresh HDMI (button, diagnostic) | Rediscover HDMI inputs. Adds back an input you removed when the TV still reports it — ADB only |
+| Rebuild sources (button, configuration) | Forget every saved HDMI input and custom name, then discover inputs again — ADB only |
 | Find remote (button) | Sends `KEYCODE_PAIRING`; depending on the TV and remote this makes the remote chirp or opens remote pairing — ADB only |
 
 When ADB goes offline, a repair issue explains what to check on the TV. It clears itself when ADB reconnects.
@@ -77,6 +79,7 @@ When ADB goes offline, a repair issue explains what to check on the TV. It clear
 
 - **Settings** — IME (current-app detection), ADB on/off, ADB connection type and port, keep-alive interval
 - **Applications** — add, rename, set icons for or delete apps; optionally add the TCL / Google TV presets
+- **HDMI inputs** — remove inputs you no longer want on the source list, or rebuild the whole list after changing HDMI cables
 - **Pair Wireless debugging** — pair (or re-pair) and switch to Wireless debugging
 
 Use **Reconfigure** from the integration menu to change the TV's IP address, and re-pair the remote protocol from the repair prompt if the TV forgets Home Assistant.
@@ -85,11 +88,13 @@ Use **Reconfigure** from the integration menu to change the TV's IP address, and
 
 | Action | Description |
 | --- | --- |
-| `tcl_android_tv_remote.refresh_hdmi` | Reconnect ADB if needed and rediscover HDMI inputs |
+| `tcl_android_tv_remote.refresh_hdmi` | Reconnect ADB if needed and rediscover HDMI inputs. Adds back an input you removed when the TV still reports it |
+| `tcl_android_tv_remote.rebuild_sources` | Forget every saved HDMI input and custom name, then discover inputs again |
+| `tcl_android_tv_remote.remove_hdmi_inputs` | Remove HDMI inputs by id or name. Refresh HDMI can add back what the TV still reports |
 | `tcl_android_tv_remote.adb_command` | Admin only. Run a shell command on the TV and return its output |
 | `tcl_android_tv_remote.adb_pair` | Admin only. Pair Wireless debugging (pairing port + code) and switch to it |
 
-All three need a target (the TV's media player). Example:
+Each action needs a target (the TV's media player). Example:
 
 ```yaml
 action: tcl_android_tv_remote.adb_command
@@ -104,7 +109,16 @@ response_variable: result
 
 - **ADB shows unauthorized** — in Developer options revoke debugging authorizations, reload the integration and accept the prompt on the TV.
 - **HDMI inputs have generic names** — rename the inputs on the TV (Settings → Inputs), then press **Refresh HDMI**.
+- **You moved an HDMI cable and the source list is wrong** — see below.
 - **Download diagnostics** from the device page for the full ADB state and discovered inputs when reporting an issue.
+
+### After you change HDMI cables
+
+The TV remembers input names, and Home Assistant keeps the inputs it has already saved. After you plug a device into a different port, those names can point at the wrong port, and a port you unplugged can stay on the list.
+
+1. On the device page, press **Rebuild sources** (under configuration). The same action is **Rebuild sources**, and **Configure → HDMI inputs** has a **Rebuild sources** switch. This clears every saved HDMI input and every custom name stored on the TV, then discovers the ports again.
+2. To drop one port without clearing the rest, open **Configure → HDMI inputs**, select the inputs, and submit. Or run **Remove HDMI inputs** with their names (`HDMI 2`, `Apple TV`) or ids (`com.tcl.tvinput/.TvPassThroughService/HW15`). You can pass several at once. The media player source list and the Source dropdown update immediately, and an entity that belonged only to a removed input is removed.
+3. Press **Refresh HDMI** afterwards if you want Home Assistant to add back any input the TV still reports. A removed input stays off the list until you do that (or rebuild). The regular connection check does not put it back.
 
 ### Diagnostics and debug logs
 

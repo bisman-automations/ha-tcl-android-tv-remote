@@ -59,6 +59,11 @@ class AdbDataCoordinator(DataUpdateCoordinator[AdbCoordinatorData]):
         self._on_port_changed = on_port_changed
         self._was_available: bool | None = None
         self._last_success: datetime | None = None
+        # Keep-alive merges the TV report into the saved catalog. An explicit
+        # refresh replaces that catalog so removed inputs can come back.
+        self._sync_sources: Callable[[], None] | None = None
+        self._accept_tv_sources: Callable[[], None] | None = None
+        self._accept_reported_sources = False
         super().__init__(
             hass,
             _LOGGER,
@@ -106,6 +111,10 @@ class AdbDataCoordinator(DataUpdateCoordinator[AdbCoordinatorData]):
             port=self.adb.port,
         )
         self._handle_availability(data)
+        if self._accept_reported_sources and self._accept_tv_sources is not None:
+            self._accept_tv_sources()
+        elif self._sync_sources is not None:
+            self._sync_sources()
         return data
 
     def _error_text(self) -> str:
@@ -141,9 +150,31 @@ class AdbDataCoordinator(DataUpdateCoordinator[AdbCoordinatorData]):
             },
         )
 
+    def set_source_hooks(
+        self,
+        sync_sources: Callable[[], None],
+        accept_tv_sources: Callable[[], None],
+    ) -> None:
+        """Register catalog updates run at the end of a successful refresh.
+
+        `sync_sources` merges inputs the TV reports and leaves saved inputs
+        the TV did not mention alone (a short ADB failure must not wipe the
+        list). `accept_tv_sources` replaces the saved list with the report.
+        """
+        self._sync_sources = sync_sources
+        self._accept_tv_sources = accept_tv_sources
+
     async def async_refresh_hdmi(self) -> AdbCoordinatorData:
-        """Reconnect if needed, rediscover HDMI inputs and push new state."""
-        await self.async_refresh()
+        """Reconnect if needed, rediscover HDMI inputs and push new state.
+
+        Unlike the keep-alive poll, this replaces the saved input list with
+        what the TV reports, which brings back an input the user removed.
+        """
+        self._accept_reported_sources = True
+        try:
+            await self.async_refresh()
+        finally:
+            self._accept_reported_sources = False
         return self.data
 
     async def async_adb_command(self, command: str) -> str | None:

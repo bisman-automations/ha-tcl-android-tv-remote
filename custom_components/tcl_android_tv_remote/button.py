@@ -31,6 +31,7 @@ async def async_setup_entry(
         entities += [
             TclFindRemoteButton(runtime.api, config_entry),
             TclRefreshHdmiButton(runtime.api, config_entry),
+            TclRebuildSourcesButton(runtime.api, config_entry),
         ]
     async_add_entities(entities)
 
@@ -95,3 +96,14 @@ class TclRefreshHdmiButton(_TclButton):
         coordinator = self._runtime.coordinator
         assert coordinator is not None
         await coordinator.async_refresh_hdmi()
+
+
+class TclRebuildSourcesButton(_TclButton):
+    """Forget every saved HDMI input and custom name, then discover again."""
+
+    _key = "rebuild_sources"
+    _attr_entity_category = EntityCategory.CONFIG
+
+    @override
+    async def async_press(self) -> None:
+        await self._runtime.sources.async_rebuild()

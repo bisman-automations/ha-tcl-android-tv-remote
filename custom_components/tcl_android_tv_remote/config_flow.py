@@ -23,6 +23,7 @@ from homeassistant.config_entries import (
 )
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_NAME
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import format_mac
 from homeassistant.helpers.selector import (
     NumberSelector,
@@ -65,6 +66,7 @@ from .helpers import (
     get_enable_ime,
     get_keepalive_interval,
 )
+from .sources import format_input_label
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -75,6 +77,8 @@ CONF_ADD_DEFAULT_APPS = "add_default_apps"
 CONF_PAIRING_PORT = "pairing_port"
 CONF_PAIRING_CODE = "pairing_code"
 CONF_CONNECT_PORT = "connect_port"
+CONF_HDMI_REMOVE = "hdmi_remove"
+CONF_REBUILD_SOURCES = "rebuild_sources"
 
 _EXAMPLE_APP_ID = "com.plexapp.android"
 _EXAMPLE_APP_PLAY_STORE_URL = (
@@ -82,6 +86,25 @@ _EXAMPLE_APP_PLAY_STORE_URL = (
 )
 
 STEP_PAIR_DATA_SCHEMA = vol.Schema({vol.Required("pin"): str})
+
+_HDMI_FLOW_ERRORS = {
+    "adb_not_enabled",
+    "unknown_hdmi_inputs",
+    "ambiguous_hdmi_inputs",
+    "hdmi_inputs_required",
+    "hdmi_labels_failed",
+}
+
+
+def _hdmi_flow_error(err: HomeAssistantError, user_input: dict[str, Any]) -> str:
+    """Map an HDMI action failure onto an options-flow error key."""
+    key = getattr(err, "translation_key", None)
+    if key in _HDMI_FLOW_ERRORS:
+        return key
+    if user_input.get(CONF_REBUILD_SOURCES):
+        return "hdmi_labels_failed"
+    return "unknown_hdmi_inputs"
+
 
 _PORT_SELECTOR = NumberSelector(
     NumberSelectorConfig(min=1024, max=65535, mode=NumberSelectorMode.BOX)
@@ -423,7 +446,8 @@ class TclAndroidTvRemoteOptionsFlowHandler(OptionsFlowWithReload):
     ) -> ConfigFlowResult:
         """Options menu."""
         return self.async_show_menu(
-            step_id="init", menu_options=["settings", "apps", "adb_pair"]
+            step_id="init",
+            menu_options=["settings", "apps", "hdmi_inputs", "adb_pair"],
         )
 
     async def async_step_settings(
@@ -561,6 +585,68 @@ class TclAndroidTvRemoteOptionsFlowHandler(OptionsFlowWithReload):
                 "example_app_play_store_url": _EXAMPLE_APP_PLAY_STORE_URL,
             },
         )
+
+    async def async_step_hdmi_inputs(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Remove selected HDMI inputs, or rebuild the whole list."""
+        errors: dict[str, str] = {}
+        placeholders = {"inputs": "", "error": "", "name": self.config_entry.title}
+        if user_input is not None:
+            try:
+                await self._async_apply_hdmi_changes(user_input)
+            except HomeAssistantError as err:
+                errors["base"] = _hdmi_flow_error(err, user_input)
+                placeholders.update(
+                    getattr(err, "translation_placeholders", None) or {}
+                )
+            else:
+                return self._save({})
+        return self._async_hdmi_form(errors, placeholders)
+
+    def _async_hdmi_form(
+        self, errors: dict[str, str], placeholders: dict[str, str]
+    ) -> ConfigFlowResult:
+        """Show the current inputs, a multi-select and the rebuild switch."""
+        runtime = getattr(self.config_entry, "runtime_data", None)
+        sources = runtime.sources.hdmi_sources() if runtime is not None else []
+        fields: dict[Any, Any] = {}
+        if sources:
+            fields[vol.Optional(CONF_HDMI_REMOVE)] = SelectSelector(
+                SelectSelectorConfig(
+                    options=[
+                        SelectOptionDict(
+                            value=source.input_id, label=format_input_label(source)
+                        )
+                        for source in sources
+                    ],
+                    multiple=True,
+                    mode=SelectSelectorMode.DROPDOWN,
+                )
+            )
+        fields[vol.Optional(CONF_REBUILD_SOURCES, default=False)] = bool
+        return self.async_show_form(
+            step_id="hdmi_inputs",
+            data_schema=vol.Schema(fields),
+            errors=errors,
+            description_placeholders=placeholders,
+        )
+
+    async def _async_apply_hdmi_changes(self, user_input: dict[str, Any]) -> None:
+        """Rebuild, or remove the inputs picked in the multi-select."""
+        runtime = getattr(self.config_entry, "runtime_data", None)
+        if runtime is None or runtime.coordinator is None:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="adb_not_enabled",
+                translation_placeholders={"name": self.config_entry.title},
+            )
+        if user_input.get(CONF_REBUILD_SOURCES):
+            await runtime.sources.async_rebuild()
+            return
+        selected = user_input.get(CONF_HDMI_REMOVE) or []
+        if selected:
+            await runtime.sources.async_remove(list(selected))
 
     async def async_step_adb_pair(
         self, user_input: dict[str, Any] | None = None

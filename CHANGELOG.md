@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.3] - 2026-10-26
 
+### Added
+
+- **Rebuild sources** forgets every saved HDMI input and the custom names stored on the TV, then discovers inputs again. Use it after moving HDMI cables. It is a configuration button, an action, and a switch under Configure → HDMI inputs.
+- **Remove HDMI inputs** drops the inputs you choose from the source list and deletes their custom names. Configure → HDMI inputs has a multi-select, and the action takes input ids or names. Refresh HDMI adds back any input the TV still reports.
+
 ### Changed
 
 - The README follows the same layout as the other bisman-automations integrations: a button that opens it in HACS, a button that starts setup, and troubleshooting steps for debug logs and diagnostics.

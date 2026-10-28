@@ -65,6 +65,7 @@ async def async_get_config_entry_diagnostics(
             },
             "apps_count": len(entry.options.get(CONF_APPS, {})),
             "source_list": runtime.sources.source_list(),
+            "removed_hdmi_inputs": runtime.sources.removed_input_ids(),
             "adb": adb,
         },
         TO_REDACT,

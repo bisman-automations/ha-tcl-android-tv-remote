@@ -5,11 +5,13 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from custom_components.tcl_android_tv_remote.adb import (
+    CUSTOM_LABELS_SETTING,
     AdbClient,
     HdmiSource,
     extract_active_tv_input,
     extract_hdmi_sources,
     extract_media_metadata,
+    format_custom_labels,
     parse_custom_labels,
 )
 
@@ -123,3 +125,77 @@ def test_connect_with_unknown_port_fails_fast() -> None:
     client = AdbClient("192.0.2.10", port=0, use_tls=True)
     assert client.ensure_connected() is False
     assert client.status == "offline"
+
+
+def test_custom_labels_roundtrip() -> None:
+    labels = parse_custom_labels(CUSTOM_LABELS)
+    assert parse_custom_labels(format_custom_labels(labels)) == labels
+
+
+def test_rebuild_clears_custom_labels_then_rediscovers() -> None:
+    """Rebuild deletes the TV's custom names before parsing dumpsys again."""
+    client = AdbClient("192.0.2.10")
+    client._adb = object()  # noqa: SLF001
+    client._status = "connected"  # noqa: SLF001
+    stale_id = "com.tcl.tvinput/.TvPassThroughService/HW15"
+    client._hdmi_sources = [HdmiSource("Old Blu-ray", stale_id, 1, "Old Blu-ray")]  # noqa: SLF001
+    client._custom_labels = {stale_id: "Old Blu-ray"}  # noqa: SLF001
+    calls: list[str] = []
+
+    def shell(command: str) -> str:
+        calls.append(command)
+        if command.startswith("echo"):
+            return "ok"
+        if command.startswith("settings get"):
+            return "null"
+        if command.startswith("dumpsys tv_input"):
+            return TCL_DUMPSYS
+        return ""
+
+    with patch.object(client, "shell", side_effect=shell):
+        assert client.rebuild_hdmi_sources() is True
+
+    assert f"settings delete secure {CUSTOM_LABELS_SETTING}" in calls
+    assert client.custom_labels == {}
+    names = [source.name for source in client.hdmi_sources]
+    assert "Old Blu-ray" not in names
+    assert names == ["HDMI 1", "HDMI 2 - PlayStation 5", "HDMI 3"]
+
+
+def test_remove_hdmi_inputs_rewrites_remaining_custom_label() -> None:
+    client = AdbClient("192.0.2.10")
+    client._adb = object()  # noqa: SLF001
+    kept = "com.tcl.tvinput/.TvPassThroughService/HW17"
+    dropped = "com.tcl.tvinput/.TvPassThroughService/HW15"
+    client._hdmi_sources = [  # noqa: SLF001
+        HdmiSource("Apple TV", dropped, 1, "Apple TV"),
+        HdmiSource("Game: Switch", kept, 3, "Game: Switch"),
+    ]
+    client._custom_labels = {dropped: "Apple TV", kept: "Game: Switch"}  # noqa: SLF001
+    calls: list[str] = []
+
+    def shell(command: str) -> str:
+        calls.append(command)
+        return ""
+
+    with (
+        patch.object(client, "shell", side_effect=shell),
+        patch.object(client, "ensure_connected", return_value=True),
+    ):
+        assert client.remove_hdmi_inputs({dropped}) is True
+
+    assert [source.input_id for source in client.hdmi_sources] == [kept]
+    assert client.custom_labels == {kept: "Game: Switch"}
+    put = next(command for command in calls if command.startswith("settings put"))
+    payload = put.split("'", 1)[1].removesuffix("'")
+    assert parse_custom_labels(payload) == {kept: "Game: Switch"}
+
+    calls.clear()
+    with (
+        patch.object(client, "shell", side_effect=shell),
+        patch.object(client, "ensure_connected", return_value=True),
+    ):
+        assert client.remove_hdmi_inputs({kept}) is True
+    assert client.hdmi_sources == []
+    assert client.custom_labels == {}
+    assert f"settings delete secure {CUSTOM_LABELS_SETTING}" in calls

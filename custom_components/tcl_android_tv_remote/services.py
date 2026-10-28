@@ -40,6 +40,7 @@ from .const import (
     ADB_MODE_TLS,
     ADB_PORT_DISCOVER,
     ATTR_COMMAND,
+    ATTR_INPUTS,
     ATTR_PAIRING_CODE,
     ATTR_PAIRING_PORT,
     CONF_ADB_MODE,
@@ -48,7 +49,9 @@ from .const import (
     DOMAIN,
     SERVICE_ADB_COMMAND,
     SERVICE_ADB_PAIR,
+    SERVICE_REBUILD_SOURCES,
     SERVICE_REFRESH_HDMI,
+    SERVICE_REMOVE_HDMI_INPUTS,
 )
 from .helpers import TclAndroidTvRemoteConfigEntry, create_adb, discover_connect_port
 
@@ -57,6 +60,10 @@ _LOGGER = logging.getLogger(__name__)
 _TARGET = cv.make_entity_service_schema({})
 
 REFRESH_HDMI_SCHEMA = _TARGET
+REBUILD_SOURCES_SCHEMA = _TARGET
+REMOVE_HDMI_INPUTS_SCHEMA = cv.make_entity_service_schema(
+    {vol.Required(ATTR_INPUTS): vol.All(cv.ensure_list, [cv.string], vol.Length(min=1))}
+)
 ADB_COMMAND_SCHEMA = cv.make_entity_service_schema(
     {vol.Required(ATTR_COMMAND): cv.string}
 )
@@ -112,6 +119,17 @@ def async_setup_services(hass: HomeAssistant) -> None:
         for entry in _target_entries(hass, call):
             await _require_coordinator(entry).async_refresh_hdmi()
 
+    async def handle_rebuild_sources(call: ServiceCall) -> None:
+        for entry in _target_entries(hass, call):
+            _require_coordinator(entry)
+            await entry.runtime_data.sources.async_rebuild()
+
+    async def handle_remove_hdmi_inputs(call: ServiceCall) -> None:
+        tokens: list[str] = list(call.data[ATTR_INPUTS])
+        for entry in _target_entries(hass, call):
+            _require_coordinator(entry)
+            await entry.runtime_data.sources.async_remove(tokens)
+
     async def handle_adb_command(call: ServiceCall) -> ServiceResponse:
         command: str = call.data[ATTR_COMMAND]
         results: dict[str, str | None] = {}
@@ -165,6 +183,18 @@ def async_setup_services(hass: HomeAssistant) -> None:
 
     hass.services.async_register(
         DOMAIN, SERVICE_REFRESH_HDMI, handle_refresh_hdmi, schema=REFRESH_HDMI_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_REBUILD_SOURCES,
+        handle_rebuild_sources,
+        schema=REBUILD_SOURCES_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_REMOVE_HDMI_INPUTS,
+        handle_remove_hdmi_inputs,
+        schema=REMOVE_HDMI_INPUTS_SCHEMA,
     )
     # Arbitrary shell access and pairing are admin-only
     async_register_admin_service(

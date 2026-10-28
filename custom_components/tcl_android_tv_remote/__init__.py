@@ -139,7 +139,14 @@ async def async_setup_entry(
 
     entry.runtime_data = RuntimeData(
         api=api,
-        sources=SourceManager(api, entry.options.get(CONF_APPS, {}), adb, coordinator),
+        sources=SourceManager(
+            hass,
+            entry,
+            api,
+            entry.options.get(CONF_APPS, {}),
+            adb,
+            coordinator,
+        ),
         adb=adb,
         coordinator=coordinator,
     )

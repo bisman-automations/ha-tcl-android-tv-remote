@@ -78,7 +78,12 @@
   },
   "options": {
     "error": {
-      "pair_failed": "Wireless debugging pairing failed: {detail}"
+      "adb_not_enabled": "HDMI control (ADB) is not enabled for {name}",
+      "ambiguous_hdmi_inputs": "These names match more than one input: {inputs}. Remove them by id instead.",
+      "hdmi_inputs_required": "Choose at least one HDMI input to remove",
+      "hdmi_labels_failed": "The source list was updated, but the custom names on the TV could not be cleared: {error}",
+      "pair_failed": "Wireless debugging pairing failed: {detail}",
+      "unknown_hdmi_inputs": "These inputs are not in the source list: {inputs}"
     },
     "step": {
       "init": {
@@ -86,6 +91,7 @@
         "menu_options": {
           "settings": "Settings",
           "apps": "Applications",
+          "hdmi_inputs": "HDMI inputs",
           "adb_pair": "Pair Wireless debugging"
         }
       },
@@ -129,6 +135,18 @@
           "app_icon": "Image URL. From the Play Store app page, right click on the icon and select 'Copy image address'. Alternatively upload an image under /config/www/ and use /local/filename.",
           "app_id": "E.g. {example_app_id} for {example_app_play_store_url}",
           "app_name": "Name of the application as it should be displayed in Home Assistant."
+        }
+      },
+      "hdmi_inputs": {
+        "title": "HDMI inputs",
+        "description": "The source list keeps HDMI inputs Home Assistant has saved, including custom names stored on the TV. After you move a cable, turn on Rebuild sources: that forgets every saved input and custom name, then discovers the ports again. Or select inputs to remove. They leave the source list now. Refresh HDMI adds back any input the TV still reports. Rebuild sources ignores the selection above.",
+        "data": {
+          "hdmi_remove": "Inputs to remove",
+          "rebuild_sources": "Rebuild sources"
+        },
+        "data_description": {
+          "hdmi_remove": "Select one or more inputs. Each one is removed from the source list and its custom name is deleted on the TV.",
+          "rebuild_sources": "Clear every saved HDMI input and custom name, then discover inputs from the TV again."
         }
       },
       "adb_pair": {
@@ -203,6 +221,34 @@
     },
     "adb_pair_failed": {
       "message": "{name}: Wireless debugging pairing failed: {error}"
+    },
+    "unknown_hdmi_inputs": {
+      "message": "These inputs are not in the source list: {inputs}"
+    },
+    "ambiguous_hdmi_inputs": {
+      "message": "These names match more than one input: {inputs}. Remove them by id instead."
+    },
+    "hdmi_inputs_required": {
+      "message": "Choose at least one HDMI input to remove"
+    },
+    "hdmi_labels_failed": {
+      "message": "{name}: the source list was updated, but the custom names on the TV could not be cleared: {error}"
+    }
+  },
+  "services": {
+    "rebuild_sources": {
+      "name": "Rebuild sources",
+      "description": "Forget every saved HDMI input and every custom name stored on the TV, then discover inputs again. Use this after moving HDMI cables."
+    },
+    "remove_hdmi_inputs": {
+      "name": "Remove HDMI inputs",
+      "description": "Remove saved HDMI inputs by id or name, including the custom name stored on the TV for each one. Refresh HDMI adds back any input the TV still reports.",
+      "fields": {
+        "inputs": {
+          "name": "Inputs",
+          "description": "Input ids or names to remove. A name is the label on the source list, a port such as HDMI 2, or the input id."
+        }
+      }
     }
   },
   "entity": {
@@ -217,6 +263,9 @@
       },
       "home": {
         "name": "Home"
+      },
+      "rebuild_sources": {
+        "name": "Rebuild sources"
       },
       "refresh_hdmi": {
         "name": "Refresh HDMI"
