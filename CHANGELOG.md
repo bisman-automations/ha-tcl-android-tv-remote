@@ -5,13 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
 ## [1.0.3] - 2026-10-26
 
 ### Changed
 
 - The README follows the same layout as the other bisman-automations integrations: a button that opens it in HACS, a button that starts setup, and troubleshooting steps for debug logs and diagnostics.
+- The changelog no longer keeps an Unreleased section, and the agent notes follow the updated shared release rules.
 
 ## [1.0.2] - 2026-10-23
 
@@ -59,7 +58,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Discovery only offers TVs that identify as TCL.
   - Minimum Home Assistant version: 2025.8.0.
 
-[Unreleased]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.0.3...HEAD
 [1.0.3]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.0.0...v1.0.1
