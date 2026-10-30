@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -237,3 +238,59 @@ async def test_migration_leaves_adb_off_entries_alone(hass: HomeAssistant) -> No
     await _setup(hass, entry)
     assert entry.options == {CONF_ENABLE_ADB: False}
     assert entry.minor_version == 2
+
+
+async def test_channel_entry(hass: HomeAssistant, mock_api) -> None:
+    """Typing a channel sends each digit; a newer number replaces one in progress."""
+    entry = make_entry()
+    await _setup(hass, entry)
+    play = {
+        "entity_id": MEDIA_PLAYER,
+        "media_content_type": "channel",
+    }
+    with patch(
+        "custom_components.tcl_android_tv_remote.media_player.asyncio.sleep",
+        AsyncMock(),
+    ):
+        await hass.services.async_call(
+            "media_player",
+            "play_media",
+            {**play, "media_content_id": "45"},
+            blocking=True,
+        )
+    sent = [c.args[0] for c in mock_api.send_key_command.call_args_list]
+    assert sent == ["4", "5"]
+
+    # A second number while the first is still being typed: the first stops,
+    # and its action still finishes without an error.
+    mock_api.send_key_command.reset_mock()
+    first = hass.async_create_task(
+        hass.services.async_call(
+            "media_player",
+            "play_media",
+            {**play, "media_content_id": "1234"},
+            blocking=True,
+        )
+    )
+    await asyncio.sleep(0.15)  # "1" and "2" are typed by now
+    await hass.services.async_call(
+        "media_player", "play_media", {**play, "media_content_id": "7"}, blocking=True
+    )
+    await first
+    sent = [c.args[0] for c in mock_api.send_key_command.call_args_list]
+    assert sent[-1] == "7"
+    assert len(sent) < 5
+
+    # Unloading stops a number that's still being typed.
+    started = hass.async_create_task(
+        hass.services.async_call(
+            "media_player",
+            "play_media",
+            {**play, "media_content_id": "999999"},
+            blocking=True,
+        )
+    )
+    await asyncio.sleep(0)
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+    await started

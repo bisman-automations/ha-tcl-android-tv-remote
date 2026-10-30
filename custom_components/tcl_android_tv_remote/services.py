@@ -17,24 +17,10 @@ from homeassistant.core import (
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv, entity_registry as er
 from homeassistant.helpers.service import async_register_admin_service
-
-try:  # Home Assistant 2025.9+; the old location was removed in 2026.10
-    from homeassistant.helpers.target import (
-        TargetSelection,
-        async_extract_referenced_entity_ids as _extract_referenced,
-    )
-
-    def _referenced_entities(hass: HomeAssistant, call: ServiceCall):
-        return _extract_referenced(hass, TargetSelection(call.data))
-
-except ImportError:  # pragma: no cover - older Home Assistant
-    from homeassistant.helpers.service import (
-        async_extract_referenced_entity_ids as _extract_referenced_legacy,
-    )
-
-    def _referenced_entities(hass: HomeAssistant, call: ServiceCall):
-        return _extract_referenced_legacy(hass, call)
-
+from homeassistant.helpers.target import (
+    TargetSelection,
+    async_extract_referenced_entity_ids as _extract_referenced,
+)
 
 from .const import (
     ADB_MODE_TLS,
@@ -56,6 +42,11 @@ from .const import (
 from .helpers import TclAndroidTvRemoteConfigEntry, create_adb, discover_connect_port
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _referenced_entities(hass: HomeAssistant, call: ServiceCall):
+    return _extract_referenced(hass, TargetSelection(call.data))
+
 
 _TARGET = cv.make_entity_service_schema({})
 

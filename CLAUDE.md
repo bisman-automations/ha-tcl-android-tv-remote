@@ -6,7 +6,7 @@ Android/Google TVs. It controls the TV through the Android TV Remote protocol
 (`androidtvremote2`) and, optionally, ADB (`adb-shell`, `adb-shell-wifi`) for
 HDMI input names, media details and source switching.
 
-Oldest supported Home Assistant: `hacs.json` → `homeassistant` (2025.8.0).
+Oldest supported Home Assistant: `hacs.json` → `homeassistant` (2026.8.0).
 
 ## Layout
 
@@ -40,7 +40,7 @@ Oldest supported Home Assistant: `hacs.json` → `homeassistant` (2025.8.0).
 
 Run the shared checks at the end of this file, on the newest Home Assistant
 (`requirements_test.txt`, Python 3.14) and the oldest supported one
-(`requirements_test_min.txt`, Python 3.13). CI runs both.
+(`requirements_test_min.txt`, Python 3.14, Home Assistant 2026.8). CI runs both.
 
 The tests need the integration's runtime requirements; both requirements
 files include them. Add a test for every behavior change.

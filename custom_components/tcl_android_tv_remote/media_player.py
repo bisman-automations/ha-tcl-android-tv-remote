@@ -155,6 +155,8 @@ class TclAndroidTvRemoteMediaPlayerEntity(
     async def async_will_remove_from_hass(self) -> None:
         """Remove callbacks."""
         await super().async_will_remove_from_hass()
+        if self._channel_set_task:
+            self._channel_set_task.cancel()
 
         self._api.remove_current_app_updated_callback(self._current_app_updated)
         self._api.remove_volume_info_updated_callback(self._volume_info_updated)
@@ -278,12 +280,7 @@ class TclAndroidTvRemoteMediaPlayerEntity(
                     translation_key="invalid_channel",
                     translation_placeholders={"media_id": media_id},
                 )
-            if self._channel_set_task:
-                self._channel_set_task.cancel()
-            self._channel_set_task = asyncio.create_task(
-                self._send_key_commands(list(media_id))
-            )
-            await self._channel_set_task
+            await self._async_enter_channel(media_id)
             return
 
         if media_type in [MediaType.URL, MediaType.APP]:
@@ -295,6 +292,31 @@ class TclAndroidTvRemoteMediaPlayerEntity(
             translation_key="invalid_media_type",
             translation_placeholders={"media_type": media_type},
         )
+
+    async def _async_enter_channel(self, channel: str) -> None:
+        """Type a channel number. A newer number replaces one still being typed.
+
+        The task belongs to the config entry, so unloading stops it. The call
+        that was replaced returns quietly instead of failing as cancelled.
+        """
+        if self._channel_set_task and not self._channel_set_task.done():
+            self._channel_set_task.cancel()
+        task = self._config_entry.async_create_background_task(
+            self.hass,
+            self._send_key_commands(list(channel)),
+            f"{DOMAIN} channel {channel}",
+        )
+        self._channel_set_task = task
+        try:
+            await asyncio.wait([task])
+        except asyncio.CancelledError:
+            task.cancel()
+            raise
+        finally:
+            if self._channel_set_task is task:
+                self._channel_set_task = None
+        if not task.cancelled():
+            task.result()  # raise anything sending the keys raised
 
     @override
     async def async_browse_media(

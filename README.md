@@ -5,7 +5,7 @@
 # TCL Android TV Remote
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/)
-[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.8%2B-blue.svg)](https://www.home-assistant.io/)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2026.8%2B-blue.svg)](https://www.home-assistant.io/)
 [![GitHub Release](https://img.shields.io/github/v/release/bisman-automations/ha-tcl-android-tv-remote)](https://github.com/bisman-automations/ha-tcl-android-tv-remote/releases)
 [![Test](https://github.com/bisman-automations/ha-tcl-android-tv-remote/actions/workflows/test.yml/badge.svg)](https://github.com/bisman-automations/ha-tcl-android-tv-remote/actions/workflows/test.yml)
 [![Validate](https://github.com/bisman-automations/ha-tcl-android-tv-remote/actions/workflows/validate.yml/badge.svg)](https://github.com/bisman-automations/ha-tcl-android-tv-remote/actions/workflows/validate.yml)
@@ -15,7 +15,7 @@ Custom Home Assistant integration for TCL Google TV / Android TV sets.
 
 It uses the **Android TV Remote** protocol for power, volume, transport keys and app launching, and **ADB** for discovering and switching HDMI inputs — the part the core Android TV Remote integration can't do.
 
-Domain: `tcl_android_tv_remote` · Requires Home Assistant 2025.8 or newer.
+Domain: `tcl_android_tv_remote` · Requires Home Assistant 2026.8 or newer.
 
 ## Features
 
@@ -37,7 +37,7 @@ Domain: `tcl_android_tv_remote` · Requires Home Assistant 2025.8 or newer.
 1. Click the button above, or in HACS open the menu, choose **Custom repositories**, and add `https://github.com/bisman-automations/ha-tcl-android-tv-remote` as an **Integration**.
 2. Download **TCL Android TV Remote** and restart Home Assistant.
 
-Requires **Home Assistant 2025.8 or newer**.
+Requires **Home Assistant 2026.8 or newer**.
 
 ### Manual
 
@@ -147,7 +147,7 @@ ruff check . && ruff format --check .
 pytest
 ```
 
-To test against the oldest supported Home Assistant (2025.8), use Python 3.13 and
+To test against the oldest supported Home Assistant (2026.8), use Python 3.14 and
 `pip install -r requirements_test_min.txt` instead.
 
 CI runs the same checks on every push and pull request, on both Home Assistant
