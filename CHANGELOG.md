@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-10-30
+
+### Changed
+
+- **Requires Home Assistant 2026.8 or newer.**
+- The integration's dark-mode icon now comes in both sizes, and the large icon is full size.
+
+### Fixed
+
+- **Typing a channel number while another is still being typed** no longer makes the first action fail as cancelled: the newer number replaces it, and the first action finishes quietly.
+- Unloading or restarting the integration stops a channel number that's still being typed.
+
 ## [1.0.3] - 2026-10-26
 
 ### Added
@@ -63,6 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Discovery only offers TVs that identify as TCL.
   - Minimum Home Assistant version: 2025.8.0.
 
+[1.1.0]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.0.3...v1.1.0
 [1.0.3]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.0.0...v1.0.1
