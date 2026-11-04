@@ -78,7 +78,6 @@ To enable Developer options, open **Settings → System → About** and press **
 | ADB status (sensor, diagnostic, disabled by default) | connected / unauthorized / offline / timeout / error — ADB only |
 | Refresh HDMI (button, diagnostic) | Rediscover HDMI inputs. Adds back an input you removed when the TV still reports it — ADB only |
 | Rebuild sources (button, configuration) | Forget every saved HDMI input and custom name, then discover inputs again — ADB only |
-| Find remote (button) | Sends `KEYCODE_PAIRING`; depending on the TV and remote this makes the remote chirp or opens remote pairing — ADB only |
 
 When ADB goes offline, a repair issue explains what to check on the TV. It clears itself when ADB reconnects.
 
@@ -99,7 +98,7 @@ Use **Reconfigure** from the integration menu to change the TV's IP address, and
 | --- | --- |
 | `tcl_android_tv_remote.refresh_hdmi` | Reconnect ADB if needed and rediscover HDMI inputs. Adds back an input you removed when the TV still reports it |
 | `tcl_android_tv_remote.rebuild_sources` | Forget every saved HDMI input and custom name, then discover inputs again |
-| `tcl_android_tv_remote.remove_hdmi_inputs` | Remove HDMI inputs by id or name. Refresh HDMI can add back what the TV still reports |
+| `tcl_android_tv_remote.remove_hdmi_inputs` | Remove HDMI inputs by id or name, deleting only those custom names. Refresh HDMI can add back what the TV still reports |
 | `tcl_android_tv_remote.adb_command` | Admin only. Run a shell command on the TV and return its output |
 | `tcl_android_tv_remote.adb_pair` | Admin only. Pair Wireless debugging (pairing port + code) and switch to it |
 
@@ -125,8 +124,8 @@ response_variable: result
 
 The TV remembers input names, and Home Assistant keeps the inputs it has already saved. After you plug a device into a different port, those names can point at the wrong port, and a port you unplugged can stay on the list.
 
-1. On the device page, press **Rebuild sources** (under configuration). The same action is **Rebuild sources**, and **Configure → HDMI inputs** has a **Rebuild sources** switch. This clears every saved HDMI input and every custom name stored on the TV, then discovers the ports again.
-2. To drop one port without clearing the rest, open **Configure → HDMI inputs**, select the inputs, and submit. Or run **Remove HDMI inputs** with their names (`HDMI 2`, `Apple TV`) or ids (`com.tcl.tvinput/.TvPassThroughService/HW15`). You can pass several at once. The media player source list and the Source dropdown update immediately, and an entity that belonged only to a removed input is removed.
+1. On the device page, press **Rebuild sources** (under configuration). The same action is **Rebuild sources**, and **Configure → HDMI inputs** has a **Rebuild sources** switch. This clears every saved HDMI input and every custom name stored on the TV, then discovers the ports again. The names are read first and deleted only when that read succeeds; if the TV cannot be read, they stay and Home Assistant reports an error.
+2. To drop one port without clearing the rest, open **Configure → HDMI inputs**, select the inputs, and submit. Or run **Remove HDMI inputs** with their names (`HDMI 2`, `Apple TV`) or ids (`com.tcl.tvinput/.TvPassThroughService/HW15`). You can pass several at once. The names are read from the TV first, and only the inputs you chose lose their names, including a name you changed on the TV since the last refresh. If the TV cannot be read (it is in standby, for example), no names are changed and Home Assistant reports an error. The media player source list and the Source dropdown update immediately, and an entity that belonged only to a removed input is removed.
 3. Press **Refresh HDMI** afterwards if you want Home Assistant to add back any input the TV still reports. A removed input stays off the list until you do that (or rebuild). The regular connection check does not put it back.
 
 ### Diagnostics and debug logs

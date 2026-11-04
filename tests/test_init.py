@@ -63,6 +63,55 @@ async def _setup(hass: HomeAssistant, entry, adb: MagicMock | None = None):
         await hass.async_block_till_done()
 
 
+async def test_retired_find_remote_button_is_removed(hass: HomeAssistant) -> None:
+    """An existing Find remote entity is dropped; other entities stay."""
+    entry = make_entry(CLASSIC_OPTIONS)
+    entry.add_to_hass(hass)
+    assert entry.unique_id
+    retired_unique_id = f"{entry.unique_id}_btn_find_remote"
+    registry = er.async_get(hass)
+    retired = registry.async_get_or_create(
+        "button",
+        DOMAIN,
+        retired_unique_id,
+        config_entry=entry,
+        original_name="Find remote",
+    )
+    # Same unique id, different integration: not ours to remove.
+    foreign = registry.async_get_or_create(
+        "button",
+        "other_integration",
+        retired_unique_id,
+        original_name="Find remote",
+    )
+    # Same config entry, different domain: the unique id match is the button.
+    other_domain = registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        retired_unique_id,
+        config_entry=entry,
+        original_name="Not the button",
+    )
+
+    await _setup(hass, entry, _fake_adb())
+
+    assert registry.async_get(retired.entity_id) is None
+    assert registry.async_get_entity_id("button", DOMAIN, retired_unique_id) is None
+    assert hass.states.get(retired.entity_id) is None
+    assert registry.async_get(foreign.entity_id) is not None
+    assert registry.async_get(other_domain.entity_id) is not None
+    assert (
+        registry.async_get_entity_id("button", DOMAIN, f"{entry.unique_id}_btn_home")
+        is not None
+    )
+    assert (
+        registry.async_get_entity_id(
+            "button", DOMAIN, f"{entry.unique_id}_btn_refresh_hdmi"
+        )
+        is not None
+    )
+
+
 async def test_setup_without_adb(hass: HomeAssistant) -> None:
     entry = make_entry()
     await _setup(hass, entry)

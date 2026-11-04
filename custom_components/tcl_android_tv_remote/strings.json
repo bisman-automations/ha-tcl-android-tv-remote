@@ -81,7 +81,7 @@
       "adb_not_enabled": "HDMI control (ADB) is not enabled for {name}",
       "ambiguous_hdmi_inputs": "These names match more than one input: {inputs}. Remove them by id instead.",
       "hdmi_inputs_required": "Choose at least one HDMI input to remove",
-      "hdmi_labels_failed": "The source list was updated, but the custom names on the TV could not be cleared: {error}",
+      "hdmi_labels_failed": "The source list was updated, but the custom names on the TV were left unchanged: {error}",
       "pair_failed": "Wireless debugging pairing failed: {detail}",
       "unknown_hdmi_inputs": "These inputs are not in the source list: {inputs}"
     },
@@ -145,8 +145,8 @@
           "rebuild_sources": "Rebuild sources"
         },
         "data_description": {
-          "hdmi_remove": "Select one or more inputs. Each one is removed from the source list and its custom name is deleted on the TV.",
-          "rebuild_sources": "Clear every saved HDMI input and custom name, then discover inputs from the TV again."
+          "hdmi_remove": "Select one or more inputs. Each one is removed from the source list. Only that input's custom name is deleted on the TV, after the current names are read. If the TV cannot be read, the names stay.",
+          "rebuild_sources": "Clear every saved HDMI input and custom name, then discover inputs from the TV again. Names on the TV are deleted only when they can be read."
         }
       },
       "adb_pair": {
@@ -232,17 +232,17 @@
       "message": "Choose at least one HDMI input to remove"
     },
     "hdmi_labels_failed": {
-      "message": "{name}: the source list was updated, but the custom names on the TV could not be cleared: {error}"
+      "message": "{name}: the source list was updated, but the custom names on the TV were left unchanged: {error}"
     }
   },
   "services": {
     "rebuild_sources": {
       "name": "Rebuild sources",
-      "description": "Forget every saved HDMI input and every custom name stored on the TV, then discover inputs again. Use this after moving HDMI cables."
+      "description": "Forget every saved HDMI input and every custom name stored on the TV, then discover inputs again. The names are deleted only after they are read; if the TV cannot be read, they are left unchanged. Use this after moving HDMI cables."
     },
     "remove_hdmi_inputs": {
       "name": "Remove HDMI inputs",
-      "description": "Remove saved HDMI inputs by id or name, including the custom name stored on the TV for each one. Refresh HDMI adds back any input the TV still reports.",
+      "description": "Remove saved HDMI inputs by id or name. The custom names are read from the TV first, and only the names of these inputs are deleted. If the TV cannot be read, every name is left as it is. Refresh HDMI adds back any input the TV still reports.",
       "fields": {
         "inputs": {
           "name": "Inputs",
@@ -258,9 +258,6 @@
       }
     },
     "button": {
-      "find_remote": {
-        "name": "Find remote"
-      },
       "home": {
         "name": "Home"
       },

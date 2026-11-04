@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-11-04
+
+### Fixed
+
+- **Removing an HDMI input no longer clears every custom name on the TV.** The names are read from the TV immediately before they are written. Only the inputs you removed lose their names, including a name changed on the TV since the last refresh. If that read fails (for example the TV is in standby and the names were never loaded), nothing is written and the names stay. The setting is deleted only when the input you removed was the last one with a custom name. Rebuild sources follows the same rule: it deletes the names only after reading them, and leaves them unchanged when the read fails.
+
+### Removed
+
+- **Find remote button.** It sent `KEYCODE_PAIRING`, which can open remote pairing instead of making the remote chirp, and that was not confirmed on TCL TVs. The button is no longer created. An install that already has it drops that button entity the next time the integration loads. Home, Refresh HDMI, and Rebuild sources stay.
+
 ## [1.1.1] - 2026-10-30
 
 ### Changed
@@ -81,6 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Discovery only offers TVs that identify as TCL.
   - Minimum Home Assistant version: 2025.8.0.
 
+[1.1.2]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.0.3...v1.1.0
 [1.0.3]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.0.2...v1.0.3

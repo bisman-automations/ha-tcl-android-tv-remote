@@ -151,6 +151,30 @@ async def test_remove_unknown_input_leaves_the_list_alone(hass: HomeAssistant) -
     assert CONF_HDMI_INPUTS not in entry.options
 
 
+async def test_remove_raises_when_tv_names_cannot_be_read(hass: HomeAssistant) -> None:
+    """A failed read still hides the input, and the action reports it."""
+    entry = make_entry(_apps_options())
+    adb = _fake_adb()
+    adb.remove_hdmi_inputs.return_value = False
+    adb.last_error = (
+        "Could not read custom HDMI names from the TV; they were left unchanged"
+    )
+    await _setup(hass, entry, adb)
+
+    with pytest.raises(HomeAssistantError) as err:
+        await _remove(hass, ["HDMI 2"])
+
+    assert err.value.translation_domain == DOMAIN
+    assert err.value.translation_key == "hdmi_labels_failed"
+    assert err.value.translation_placeholders == {
+        "name": entry.title,
+        "error": adb.last_error,
+    }
+    adb.remove_hdmi_inputs.assert_called_once()
+    assert _source_list(hass) == ["Apple TV", "Plex"]
+    assert HW16 in entry.options[CONF_HDMI_REMOVED]
+
+
 async def test_rebuild_without_adb_errors(hass: HomeAssistant) -> None:
     entry = make_entry()
     await _setup(hass, entry)
@@ -295,6 +319,32 @@ async def test_options_flow_removes_selected_inputs(hass: HomeAssistant) -> None
     assert _source_list(hass) == ["Plex"]
     assert _select_options(hass) == ["Plex"]
     assert set(entry.options[CONF_HDMI_REMOVED]) == {HW15, HW16}
+
+
+async def test_options_flow_reports_when_tv_names_cannot_be_read(
+    hass: HomeAssistant,
+) -> None:
+    entry = make_entry(_apps_options())
+    adb = _fake_adb()
+    adb.remove_hdmi_inputs.return_value = False
+    adb.last_error = (
+        "Could not read custom HDMI names from the TV; they were left unchanged"
+    )
+    entry.add_to_hass(hass)
+    with patch("custom_components.tcl_android_tv_remote.create_adb", return_value=adb):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        result = await _open_hdmi_options(hass, entry)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"hdmi_remove": [HW15]}
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["errors"] == {"base": "hdmi_labels_failed"}
+        assert result["description_placeholders"]["error"] == adb.last_error
+        await hass.async_block_till_done()
+
+    assert HW15 in entry.options[CONF_HDMI_REMOVED]
+    assert "Apple TV" not in _source_list(hass)
 
 
 async def test_options_flow_rebuild_ignores_the_selection(hass: HomeAssistant) -> None:

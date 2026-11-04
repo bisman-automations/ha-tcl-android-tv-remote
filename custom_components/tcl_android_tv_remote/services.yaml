@@ -13,8 +13,9 @@ rebuild_sources:
   name: Rebuild sources
   description: >-
     Forget every saved HDMI input and every custom name stored on the TV, then
-    discover inputs again. Use this after moving HDMI cables, when the source
-    list still shows the old ports or names.
+    discover inputs again. The names are deleted only after they are read; if
+    the TV cannot be read, they are left unchanged. Use this after moving HDMI
+    cables, when the source list still shows the old ports or names.
   target:
     entity:
       integration: tcl_android_tv_remote
@@ -23,9 +24,11 @@ rebuild_sources:
 remove_hdmi_inputs:
   name: Remove HDMI inputs
   description: >-
-    Remove saved HDMI inputs by id or name, including the custom name stored
-    on the TV for each one. They leave the source list immediately. Refresh
-    HDMI adds back any input the TV still reports.
+    Remove saved HDMI inputs by id or name. The custom names are read from
+    the TV first, and only the names of these inputs are deleted; a name
+    changed on the TV since the last refresh is kept. If the TV cannot be
+    read, every name is left as it is. The inputs leave the source list
+    immediately. Refresh HDMI adds back any input the TV still reports.
   target:
     entity:
       integration: tcl_android_tv_remote

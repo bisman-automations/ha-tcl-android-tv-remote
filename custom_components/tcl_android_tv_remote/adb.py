@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 import logging
 from pathlib import Path
@@ -620,10 +621,11 @@ class AdbClient:
     def refresh_state(self) -> None:
         """Refresh HDMI list, active input, and media metadata."""
         with self._lock:
-            raw_labels = self.shell(f"settings get secure {CUSTOM_LABELS_SETTING}")
-            # A failed read must not wipe names we already have.
-            if raw_labels is not None:
-                self._custom_labels = parse_custom_labels(raw_labels)
+            # A failed or unreadable response must not wipe names we already
+            # have. ``null`` is a real empty setting and does clear the cache.
+            fresh_labels = self._read_custom_labels()
+            if fresh_labels is not None:
+                self._custom_labels = fresh_labels
 
             dumpsys = self.shell("dumpsys tv_input") or ""
             if dumpsys:
@@ -659,11 +661,55 @@ class AdbClient:
         lower = result.lower()
         return "exception" not in lower and "permission" not in lower
 
-    def clear_custom_labels(self) -> bool:
-        """Delete every custom input name stored on the TV.
+    def _read_custom_labels(self) -> dict[str, str] | None:
+        """Read `tv_input_custom_labels`, or None when that read cannot be trusted.
+
+        ``settings get`` of an unset value prints the literal ``null``, which
+        is an empty map. ``None`` from the shell (standby, dropped session)
+        and any other non-label text are failures. Callers must not write the
+        setting after a failure: an empty cache is not the same as an empty
+        setting, and writing it would delete names the user set on the TV.
+        """
+        raw = self.shell(f"settings get secure {CUSTOM_LABELS_SETTING}")
+        if raw is None:
+            return None
+        text = raw.strip()
+        if text.lower() in {"null", "none"}:
+            return {}
+        labels = parse_custom_labels(text)
+        # No comma-separated pair means this was not a label list. Parsing
+        # that as {} would let a later edit delete every name.
+        if not labels:
+            return None
+        return labels
+
+    def _put_custom_labels(self, labels: dict[str, str]) -> bool:
+        """Store a non-empty map. This never deletes the setting.
+
+        An empty map is refused. Deleting is `_delete_custom_labels`, and
+        only `_apply_custom_label_edit` may call it, after a fresh read
+        shows the user's edit removed the last name.
+        """
+        if not labels:
+            self._last_error = (
+                "Refusing to write an empty custom HDMI name list; "
+                "that would delete every name on the TV"
+            )
+            _LOGGER.error(self._last_error)
+            return False
+        payload = format_custom_labels(labels)
+        result = self.shell(f"settings put secure {CUSTOM_LABELS_SETTING} '{payload}'")
+        if not self._settings_ok(result):
+            return False
+        self._custom_labels = dict(labels)
+        return True
+
+    def _delete_custom_labels(self) -> bool:
+        """Delete the setting because a fresh edit left it with no names.
 
         Tries `settings delete` and, if the firmware refuses, writes the
-        literal `null` that `parse_custom_labels` treats as empty.
+        literal `null` that `parse_custom_labels` treats as empty. Do not
+        call this with a stale or failed read.
         """
         deleted = self.shell(f"settings delete secure {CUSTOM_LABELS_SETTING}")
         if not self._settings_ok(deleted):
@@ -673,50 +719,120 @@ class AdbClient:
         self._custom_labels = {}
         return True
 
-    def write_custom_labels(self, labels: dict[str, str]) -> bool:
-        """Replace the TV's custom input names. An empty map deletes them."""
-        if not labels:
-            return self.clear_custom_labels()
-        payload = format_custom_labels(labels)
-        result = self.shell(f"settings put secure {CUSTOM_LABELS_SETTING} '{payload}'")
-        if not self._settings_ok(result):
-            return False
-        self._custom_labels = dict(labels)
-        return True
+    def _apply_custom_label_edit(
+        self, mutate: Callable[[dict[str, str]], None]
+    ) -> bool:
+        """Read the TV's custom names, change that copy, and write it back.
 
-    def remove_hdmi_inputs(self, input_ids: set[str]) -> bool:
-        """Drop inputs from memory and from the TV's custom-name setting.
+        This is the only path that writes `tv_input_custom_labels`. Adding,
+        renaming or clearing a name is a mutation of the dict just read, not
+        a write of `self._custom_labels` (that cache starts empty and is only
+        filled by a successful read):
 
-        Returns False when the TV setting could not be updated. The in-memory
-        list is still updated so Home Assistant can hide the inputs.
+            def rename(labels: dict[str, str]) -> None:
+                labels[input_id] = new_name
+
+            self._apply_custom_label_edit(rename)
+
+        A failed read returns False and writes nothing. ``settings delete``
+        runs only when `mutate` removes the last name from a read that
+        actually contained names. The caller must hold ``self._lock``.
         """
-        self._hdmi_sources = [
-            source for source in self._hdmi_sources if source.input_id not in input_ids
-        ]
-        self._custom_labels = {
-            input_id: label
-            for input_id, label in self._custom_labels.items()
-            if input_id not in input_ids
-        }
         if not self.ensure_connected():
             return False
-        return self.write_custom_labels(self._custom_labels)
+        fresh = self._read_custom_labels()
+        if fresh is None:
+            # shell() already recorded a dropped command. An empty or
+            # unreadable response does not, so say why nothing was written.
+            if not self._last_error:
+                self._last_error = (
+                    "Could not read custom HDMI names from the TV; "
+                    "they were left unchanged"
+                )
+            _LOGGER.warning(
+                "Not updating %s on %s:%s; the current names could not be read (%s)",
+                CUSTOM_LABELS_SETTING,
+                self.host,
+                self.port,
+                self._last_error,
+            )
+            return False
+
+        updated = dict(fresh)
+        mutate(updated)
+        updated = {
+            input_id: label for input_id, label in updated.items() if input_id and label
+        }
+        if updated == fresh:
+            # The edit changed nothing, or the setting was already empty.
+            # Keep the snapshot and do not touch the TV.
+            self._custom_labels = dict(fresh)
+            return True
+        if not updated:
+            # `fresh` was non-empty, otherwise it would have matched above.
+            # The user removed every remaining name, including the last one.
+            wrote = self._delete_custom_labels()
+        else:
+            wrote = self._put_custom_labels(updated)
+        if not wrote:
+            # The write failed, so the TV still has the names just read.
+            self._custom_labels = dict(fresh)
+        return wrote
+
+    def clear_custom_labels(self) -> bool:
+        """Delete every custom input name, after reading the current setting.
+
+        Rebuild sources uses this. The read decides what is actually stored:
+        names that are there are removed, and `settings delete` runs only
+        then. A failed read leaves the setting untouched and returns False.
+        An already-empty setting is left alone.
+        """
+        with self._lock:
+            return self._apply_custom_label_edit(dict.clear)
+
+    def remove_hdmi_inputs(self, input_ids: set[str]) -> bool:
+        """Drop inputs from memory and delete only their custom names.
+
+        The TV setting is read immediately before the write. Only
+        `input_ids` are removed from that fresh copy, so a rename made on
+        the TV since the last refresh is kept, and names that were never
+        loaded (the first refresh failed, for example while the TV was in
+        standby) are not replaced with the empty cache.
+
+        Returns False when the names could not be read or written. Nothing
+        is written in that case. The in-memory source list is still updated
+        so Home Assistant can hide the inputs.
+        """
+        with self._lock:
+            self._hdmi_sources = [
+                source
+                for source in self._hdmi_sources
+                if source.input_id not in input_ids
+            ]
+
+            def drop(labels: dict[str, str]) -> None:
+                for input_id in input_ids:
+                    labels.pop(input_id, None)
+
+            return self._apply_custom_label_edit(drop)
 
     def rebuild_hdmi_sources(self) -> bool:
         """Clear every custom input name, then rediscover inputs.
 
-        Returns False when the names could not be cleared or ADB is down.
-        Discovery still runs when the TV is reachable, so the list matches
-        whatever the firmware reports after the clear attempt.
+        Returns False when the names could not be read or cleared, or ADB
+        is down. A failed read does not delete the setting. Discovery still
+        runs when the TV is reachable, so the list matches whatever the
+        firmware reports after the clear attempt.
         """
-        if not self.ensure_connected():
+        with self._lock:
+            if not self.ensure_connected():
+                self._hdmi_sources = []
+                self._custom_labels = {}
+                return False
+            cleared = self.clear_custom_labels()
             self._hdmi_sources = []
-            self._custom_labels = {}
-            return False
-        cleared = self.clear_custom_labels()
-        self._hdmi_sources = []
-        self.refresh_state()
-        return cleared
+            self.refresh_state()
+            return cleared
 
     # TCL maps hdmi_port N → hardware id (14+N) on this generation
     _TCL_PORT_TO_HW = {1: 15, 2: 16, 3: 17, 4: 18}

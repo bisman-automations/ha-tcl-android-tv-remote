@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import override
 
 from androidtvremote2 import AndroidTVRemote
@@ -9,14 +10,46 @@ from androidtvremote2 import AndroidTVRemote
 from homeassistant.components.button import ButtonEntity
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import DOMAIN
 from .entity import TclAndroidTvRemoteBaseEntity
 from .helpers import TclAndroidTvRemoteConfigEntry
 
+_LOGGER = logging.getLogger(__name__)
+
 PARALLEL_UPDATES = 0
+
+# Unique id of the Find remote button removed in 1.1.2. The class used
+# `_key = "find_remote"`, and `_TclButton` stores `{entry unique id}_btn_{key}`.
+# Setup still recognizes that id so an existing install can drop the orphan.
+_RETIRED_FIND_REMOTE_UNIQUE_ID_SUFFIX = "_btn_find_remote"
+
+
+def async_remove_retired_find_remote_button(
+    hass: HomeAssistant, config_entry: TclAndroidTvRemoteConfigEntry
+) -> None:
+    """Remove this entry's retired Find remote button from the entity registry.
+
+    The button is no longer created. Without this, Home Assistant keeps the
+    old registry row and shows it as unavailable. The match is this config
+    entry, the button domain, and this integration's platform, so a renamed
+    entity id is still removed and nothing else is.
+    """
+    unique = config_entry.unique_id
+    if not unique:
+        return
+    retired_unique_id = f"{unique}{_RETIRED_FIND_REMOTE_UNIQUE_ID_SUFFIX}"
+    registry = er.async_get(hass)
+    for entity in er.async_entries_for_config_entry(registry, config_entry.entry_id):
+        if (
+            entity.domain == "button"
+            and entity.platform == DOMAIN
+            and entity.unique_id == retired_unique_id
+        ):
+            _LOGGER.info("Removing retired Find remote button %s", entity.entity_id)
+            registry.async_remove(entity.entity_id)
 
 
 async def async_setup_entry(
@@ -25,11 +58,12 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up buttons. ADB-backed buttons only exist when ADB is enabled."""
+    # Before entities are added, so the platform does not restore the retired one.
+    async_remove_retired_find_remote_button(hass, config_entry)
     runtime = config_entry.runtime_data
     entities: list[ButtonEntity] = [TclHomeButton(runtime.api, config_entry)]
     if runtime.coordinator is not None:
         entities += [
-            TclFindRemoteButton(runtime.api, config_entry),
             TclRefreshHdmiButton(runtime.api, config_entry),
             TclRebuildSourcesButton(runtime.api, config_entry),
         ]
@@ -56,33 +90,6 @@ class TclHomeButton(_TclButton):
     @override
     async def async_press(self) -> None:
         self._send_key_command("HOME")
-
-
-class TclFindRemoteButton(_TclButton):
-    """Ask the TV to locate its remote (KEYCODE_PAIRING over ADB).
-
-    Support depends on the TV model and remote; on some firmwares this opens
-    the remote pairing screen instead.
-    """
-
-    _key = "find_remote"
-
-    @override
-    async def async_press(self) -> None:
-        coordinator = self._runtime.coordinator
-        assert coordinator is not None
-        if (
-            await coordinator.async_adb_command("input keyevent KEYCODE_PAIRING")
-            is None
-        ):
-            raise HomeAssistantError(
-                translation_domain=DOMAIN,
-                translation_key="adb_command_failed",
-                translation_placeholders={
-                    "name": coordinator.device_name,
-                    "error": coordinator.adb.last_error or "unknown",
-                },
-            )
 
 
 class TclRefreshHdmiButton(_TclButton):

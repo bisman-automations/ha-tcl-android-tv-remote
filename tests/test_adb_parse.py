@@ -132,14 +132,55 @@ def test_custom_labels_roundtrip() -> None:
     assert parse_custom_labels(format_custom_labels(labels)) == labels
 
 
-def test_rebuild_clears_custom_labels_then_rediscovers() -> None:
-    """Rebuild deletes the TV's custom names before parsing dumpsys again."""
+def _connected_client() -> AdbClient:
     client = AdbClient("192.0.2.10")
     client._adb = object()  # noqa: SLF001
     client._status = "connected"  # noqa: SLF001
+    return client
+
+
+def _put_payload(command: str) -> dict[str, str]:
+    payload = command.split("'", 1)[1].removesuffix("'")
+    return parse_custom_labels(payload)
+
+
+def test_rebuild_clears_custom_labels_then_rediscovers() -> None:
+    """Rebuild reads the names, deletes them, then parses dumpsys again."""
+    client = _connected_client()
     stale_id = "com.tcl.tvinput/.TvPassThroughService/HW15"
     client._hdmi_sources = [HdmiSource("Old Blu-ray", stale_id, 1, "Old Blu-ray")]  # noqa: SLF001
     client._custom_labels = {stale_id: "Old Blu-ray"}  # noqa: SLF001
+    calls: list[str] = []
+    gets = 0
+
+    def shell(command: str) -> str:
+        nonlocal gets
+        calls.append(command)
+        if command.startswith("echo"):
+            return "ok"
+        if command.startswith("settings get"):
+            gets += 1
+            # The clear reads the names that are actually on the TV. The
+            # refresh afterwards sees the setting gone.
+            return CUSTOM_LABELS if gets == 1 else "null"
+        if command.startswith("dumpsys tv_input"):
+            return TCL_DUMPSYS
+        return ""
+
+    with patch.object(client, "shell", side_effect=shell):
+        assert client.rebuild_hdmi_sources() is True
+
+    assert calls.index(f"settings get secure {CUSTOM_LABELS_SETTING}") < calls.index(
+        f"settings delete secure {CUSTOM_LABELS_SETTING}"
+    )
+    assert client.custom_labels == {}
+    names = [source.name for source in client.hdmi_sources]
+    assert "Old Blu-ray" not in names
+    assert names == ["HDMI 1", "HDMI 2 - PlayStation 5", "HDMI 3"]
+
+
+def test_rebuild_does_not_delete_when_the_setting_is_already_empty() -> None:
+    client = _connected_client()
     calls: list[str] = []
 
     def shell(command: str) -> str:
@@ -155,27 +196,59 @@ def test_rebuild_clears_custom_labels_then_rediscovers() -> None:
     with patch.object(client, "shell", side_effect=shell):
         assert client.rebuild_hdmi_sources() is True
 
-    assert f"settings delete secure {CUSTOM_LABELS_SETTING}" in calls
+    assert f"settings delete secure {CUSTOM_LABELS_SETTING}" not in calls
+    assert not any(command.startswith("settings put") for command in calls)
     assert client.custom_labels == {}
-    names = [source.name for source in client.hdmi_sources]
-    assert "Old Blu-ray" not in names
-    assert names == ["HDMI 1", "HDMI 2 - PlayStation 5", "HDMI 3"]
 
 
-def test_remove_hdmi_inputs_rewrites_remaining_custom_label() -> None:
-    client = AdbClient("192.0.2.10")
-    client._adb = object()  # noqa: SLF001
+def test_rebuild_skips_delete_when_the_read_fails() -> None:
+    """Standby: the read fails, so rebuild must not wipe the names."""
+    client = _connected_client()
+    stale_id = "com.tcl.tvinput/.TvPassThroughService/HW15"
+    client._custom_labels = {stale_id: "Old Blu-ray"}  # noqa: SLF001
+    calls: list[str] = []
+
+    def shell(command: str) -> str | None:
+        calls.append(command)
+        if command.startswith("echo"):
+            return "ok"
+        if command.startswith("settings get"):
+            return None
+        if command.startswith("dumpsys tv_input"):
+            return TCL_DUMPSYS
+        return ""
+
+    with patch.object(client, "shell", side_effect=shell):
+        assert client.rebuild_hdmi_sources() is False
+
+    assert f"settings delete secure {CUSTOM_LABELS_SETTING}" not in calls
+    assert not any(command.startswith("settings put") for command in calls)
+    assert client.custom_labels == {stale_id: "Old Blu-ray"}
+
+
+def test_remove_hdmi_inputs_keeps_tv_side_renames_and_other_ids() -> None:
+    """The write is the fresh TV copy minus only the requested ids."""
+    client = _connected_client()
     kept = "com.tcl.tvinput/.TvPassThroughService/HW17"
     dropped = "com.tcl.tvinput/.TvPassThroughService/HW15"
+    extra = "com.tcl.tvinput/.TvPassThroughService/HW16"
     client._hdmi_sources = [  # noqa: SLF001
         HdmiSource("Apple TV", dropped, 1, "Apple TV"),
         HdmiSource("Game: Switch", kept, 3, "Game: Switch"),
     ]
+    # Cache is stale: the TV has since renamed the kept input and added one.
     client._custom_labels = {dropped: "Apple TV", kept: "Game: Switch"}  # noqa: SLF001
+    on_tv = {
+        dropped: "Apple TV",
+        kept: "Switch OLED",
+        extra: "Blu-ray",
+    }
     calls: list[str] = []
 
     def shell(command: str) -> str:
         calls.append(command)
+        if command.startswith("settings get"):
+            return format_custom_labels(on_tv)
         return ""
 
     with (
@@ -185,17 +258,178 @@ def test_remove_hdmi_inputs_rewrites_remaining_custom_label() -> None:
         assert client.remove_hdmi_inputs({dropped}) is True
 
     assert [source.input_id for source in client.hdmi_sources] == [kept]
-    assert client.custom_labels == {kept: "Game: Switch"}
-    put = next(command for command in calls if command.startswith("settings put"))
-    payload = put.split("'", 1)[1].removesuffix("'")
-    assert parse_custom_labels(payload) == {kept: "Game: Switch"}
+    assert client.custom_labels == {kept: "Switch OLED", extra: "Blu-ray"}
+    puts = [command for command in calls if command.startswith("settings put")]
+    assert len(puts) == 1
+    assert _put_payload(puts[0]) == {kept: "Switch OLED", extra: "Blu-ray"}
+    assert f"settings delete secure {CUSTOM_LABELS_SETTING}" not in calls
 
+
+def test_remove_hdmi_inputs_skips_write_when_the_read_fails() -> None:
+    """After a restart the cache is empty. A failed read must not write it."""
+    client = _connected_client()
+    kept = "com.tcl.tvinput/.TvPassThroughService/HW17"
+    dropped = "com.tcl.tvinput/.TvPassThroughService/HW15"
+    client._hdmi_sources = [  # noqa: SLF001
+        HdmiSource("Apple TV", dropped, 1, "Apple TV"),
+        HdmiSource("Game: Switch", kept, 3, "Game: Switch"),
+    ]
+    client._custom_labels = {}  # noqa: SLF001
+    calls: list[str] = []
+
+    def shell(command: str) -> str | None:
+        calls.append(command)
+        if command.startswith("settings get"):
+            return None
+        return ""
+
+    with (
+        patch.object(client, "shell", side_effect=shell),
+        patch.object(client, "ensure_connected", return_value=True),
+    ):
+        assert client.remove_hdmi_inputs({dropped}) is False
+
+    assert any(command.startswith("settings get") for command in calls)
+    assert not any(command.startswith("settings put") for command in calls)
+    assert f"settings delete secure {CUSTOM_LABELS_SETTING}" not in calls
+    assert client.custom_labels == {}
+    # Home Assistant can still hide the input the user asked to remove.
+    assert [source.input_id for source in client.hdmi_sources] == [kept]
+    assert client.last_error == (
+        "Could not read custom HDMI names from the TV; they were left unchanged"
+    )
+
+
+def test_remove_hdmi_inputs_deletes_only_when_the_last_name_is_removed() -> None:
+    client = _connected_client()
+    kept = "com.tcl.tvinput/.TvPassThroughService/HW17"
+    dropped = "com.tcl.tvinput/.TvPassThroughService/HW15"
+    client._hdmi_sources = [HdmiSource("Apple TV", dropped, 1, "Apple TV")]  # noqa: SLF001
+    calls: list[str] = []
+    on_tv = {dropped: "Apple TV"}
+
+    def shell(command: str) -> str:
+        calls.append(command)
+        if command.startswith("settings get"):
+            return format_custom_labels(on_tv) if on_tv else "null"
+        if command.startswith("settings delete"):
+            on_tv.clear()
+            return ""
+        return ""
+
+    with (
+        patch.object(client, "shell", side_effect=shell),
+        patch.object(client, "ensure_connected", return_value=True),
+    ):
+        assert client.remove_hdmi_inputs({dropped}) is True
+
+    assert client.hdmi_sources == []
+    assert client.custom_labels == {}
+    assert f"settings delete secure {CUSTOM_LABELS_SETTING}" in calls
+    assert not any(
+        command.startswith("settings put") and not command.endswith(" null")
+        for command in calls
+    )
+
+    # Removing an input when the fresh read is already empty must not delete.
     calls.clear()
+    client._hdmi_sources = [HdmiSource("HDMI 3", kept, 3)]  # noqa: SLF001
     with (
         patch.object(client, "shell", side_effect=shell),
         patch.object(client, "ensure_connected", return_value=True),
     ):
         assert client.remove_hdmi_inputs({kept}) is True
-    assert client.hdmi_sources == []
-    assert client.custom_labels == {}
+    assert f"settings delete secure {CUSTOM_LABELS_SETTING}" not in calls
+    assert not any(command.startswith("settings put") for command in calls)
+
+
+def test_remove_hdmi_inputs_unreadable_text_is_not_an_empty_setting() -> None:
+    """Permission text must not be parsed as 'no names' and then deleted."""
+    client = _connected_client()
+    dropped = "com.tcl.tvinput/.TvPassThroughService/HW15"
+    calls: list[str] = []
+
+    def shell(command: str) -> str:
+        calls.append(command)
+        if command.startswith("settings get"):
+            return "java.lang.SecurityException: permission denied"
+        return ""
+
+    with (
+        patch.object(client, "shell", side_effect=shell),
+        patch.object(client, "ensure_connected", return_value=True),
+    ):
+        assert client.remove_hdmi_inputs({dropped}) is False
+
+    assert f"settings delete secure {CUSTOM_LABELS_SETTING}" not in calls
+    assert not any(command.startswith("settings put") for command in calls)
+
+
+def test_rename_one_label_preserves_the_fresh_copy() -> None:
+    """Add/rename goes through the same read-then-edit path as remove."""
+    client = _connected_client()
+    kept = "com.tcl.tvinput/.TvPassThroughService/HW17"
+    renamed = "com.tcl.tvinput/.TvPassThroughService/HW15"
+    client._custom_labels = {renamed: "Stale Apple TV"}  # noqa: SLF001
+    on_tv = {renamed: "Apple TV", kept: "Switch OLED"}
+    calls: list[str] = []
+
+    def shell(command: str) -> str:
+        calls.append(command)
+        if command.startswith("settings get"):
+            return format_custom_labels(on_tv)
+        return ""
+
+    def rename(labels: dict[str, str]) -> None:
+        labels[renamed] = "Living Room Apple TV"
+
+    with (
+        patch.object(client, "shell", side_effect=shell),
+        patch.object(client, "ensure_connected", return_value=True),
+    ):
+        assert client._apply_custom_label_edit(rename) is True  # noqa: SLF001
+
+    puts = [command for command in calls if command.startswith("settings put")]
+    assert len(puts) == 1
+    assert _put_payload(puts[0]) == {
+        renamed: "Living Room Apple TV",
+        kept: "Switch OLED",
+    }
+    assert f"settings delete secure {CUSTOM_LABELS_SETTING}" not in calls
+    assert client.custom_labels[kept] == "Switch OLED"
+
+
+def test_put_custom_labels_refuses_an_empty_map() -> None:
+    client = _connected_client()
+    calls: list[str] = []
+
+    with patch.object(
+        client, "shell", side_effect=lambda command: calls.append(command)
+    ):
+        assert client._put_custom_labels({}) is False  # noqa: SLF001
+
+    assert calls == []
+
+
+def test_delete_falls_back_to_null_when_firmware_refuses_delete() -> None:
+    client = _connected_client()
+    dropped = "com.tcl.tvinput/.TvPassThroughService/HW15"
+    calls: list[str] = []
+
+    def shell(command: str) -> str:
+        calls.append(command)
+        if command.startswith("settings get"):
+            return format_custom_labels({dropped: "Apple TV"})
+        if command.startswith("settings delete"):
+            return "java.lang.SecurityException: delete not supported"
+        return ""
+
+    with (
+        patch.object(client, "shell", side_effect=shell),
+        patch.object(client, "ensure_connected", return_value=True),
+    ):
+        assert client.remove_hdmi_inputs({dropped}) is True
+
     assert f"settings delete secure {CUSTOM_LABELS_SETTING}" in calls
+    assert f"settings put secure {CUSTOM_LABELS_SETTING} null" in calls
+    assert client.custom_labels == {}

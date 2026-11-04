@@ -458,7 +458,11 @@ class SourceManager:
         self._purge()
 
     async def async_rebuild(self) -> None:
-        """Forget every saved input and custom name, then discover again."""
+        """Forget every saved input and custom name, then discover again.
+
+        The names on the TV are read first. They are deleted only when that
+        read succeeds. A failed read leaves them unchanged and raises.
+        """
         self._require_adb()
         assert self.adb is not None
         cleared = await self.hass.async_add_executor_job(self.adb.rebuild_hdmi_sources)
@@ -485,8 +489,14 @@ class SourceManager:
     async def async_remove(self, tokens: list[str]) -> None:
         """Remove inputs by id or name, and delete their custom names on the TV.
 
-        The next keep-alive leaves them out. Refresh HDMI adds back any input
-        the TV still reports.
+        Those names are read from the TV immediately before the write. Only
+        the inputs matched here are dropped from that copy, so other names
+        stay, including a rename made on the TV since the last refresh. If
+        the read fails, nothing is written and this raises; the source list
+        in Home Assistant is still updated.
+
+        The next keep-alive leaves the removed inputs out. Refresh HDMI adds
+        back any input the TV still reports.
         """
         self._require_adb()
         assert self.adb is not None
