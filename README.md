@@ -45,8 +45,10 @@ New versions show up under **Settings > Updates**. Already installed TCL Android
 
 [![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=bisman-automations&repository=ha-tcl-android-tv-remote&category=integration)
 
-1. Click the button above, or in HACS open the menu, choose **Custom repositories**, and add `https://github.com/bisman-automations/ha-tcl-android-tv-remote` as an **Integration**.
-2. Download **TCL Android TV Remote** and restart Home Assistant.
+1. In HACS, open **Integrations** and search for **TCL Android TV Remote**.
+2. Download it and restart Home Assistant.
+
+If the search does not list it, add the repository yourself. Click the button above, or in HACS open the menu, choose **Custom repositories**, and add `https://github.com/bisman-automations/ha-tcl-android-tv-remote` as an **Integration**. Then download **TCL Android TV Remote** and restart Home Assistant.
 
 ### Manual
 
