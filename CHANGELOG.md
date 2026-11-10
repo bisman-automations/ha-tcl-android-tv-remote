@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2026-11-10
+
+### Changed
+
+- **Install from the Marketplace by searching for TCL Android TV Remote.** Home Assistant 2026.11 renames HACS to the Marketplace, so the install steps start by searching the Marketplace. Searching HACS stays for Home Assistant 2026.10 and older, and adding the repository as a custom repository remains the fallback.
+- **Ruff 0.17.4.** Linting uses the current Ruff release.
+
 ## [1.1.3] - 2026-11-04
 
 ### Changed
@@ -97,6 +104,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Discovery only offers TVs that identify as TCL.
   - Minimum Home Assistant version: 2025.8.0.
 
+[1.1.4]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.0...v1.1.1
