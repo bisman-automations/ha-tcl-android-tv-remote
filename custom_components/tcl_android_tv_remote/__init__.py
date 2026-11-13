@@ -130,6 +130,7 @@ async def async_setup_entry(
             hass,
             adb,
             get_keepalive_interval(entry),
+            config_entry=entry,
             entry_id=entry.entry_id,
             device_name=entry.data.get(CONF_NAME, entry.title),
             on_port_changed=_save_port,

@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 import logging
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
@@ -49,6 +50,7 @@ class AdbDataCoordinator(DataUpdateCoordinator[AdbCoordinatorData]):
         adb: AdbClient,
         update_interval: int,
         *,
+        config_entry: ConfigEntry | None = None,
         entry_id: str,
         device_name: str,
         on_port_changed: Callable[[int], None] | None = None,
@@ -67,6 +69,7 @@ class AdbDataCoordinator(DataUpdateCoordinator[AdbCoordinatorData]):
         super().__init__(
             hass,
             _LOGGER,
+            config_entry=config_entry,
             name=f"{DOMAIN}_adb_{entry_id}",
             update_interval=timedelta(
                 seconds=max(KEEPALIVE_INTERVAL_MIN, update_interval)
