@@ -19,10 +19,10 @@
   ],
   "requirements": [
     "adb-shell>=0.4.4",
-    "adb-shell-wifi==0.5.0",
+    "adb-shell-wifi[wifi]==0.5.0",
     "androidtvremote2>=0.2.3"
   ],
-  "version": "1.1.5",
+  "version": "1.1.6",
   "zeroconf": [
     "_androidtvremote2._tcp.local."
   ]

@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.6] - 2026-11-14
+
+### Fixed
+
+- **Wireless debugging pairing with a code works.** Pairing with a pairing code failed with "No module named 'spake2'" because Home Assistant didn't install the two libraries pairing needs. They're now installed with the integration, so pair again after updating and restarting Home Assistant.
+
 ## [1.1.5] - 2026-11-13
 
 ### Fixed
@@ -110,6 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Discovery only offers TVs that identify as TCL.
   - Minimum Home Assistant version: 2025.8.0.
 
+[1.1.6]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.5...v1.1.6
 [1.1.5]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.4...v1.1.5
 [1.1.4]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.2...v1.1.3

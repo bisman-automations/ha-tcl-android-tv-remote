@@ -4,5 +4,5 @@
 # .github/workflows/test.yml). Raise this together with hacs.json; see CLAUDE.md.
 pytest-homeassistant-custom-component==0.13.357
 adb-shell>=0.4.4
-adb-shell-wifi==0.5.0
+adb-shell-wifi[wifi]==0.5.0
 androidtvremote2>=0.3.2
