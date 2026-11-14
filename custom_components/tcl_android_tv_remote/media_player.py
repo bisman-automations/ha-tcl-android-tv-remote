@@ -132,6 +132,16 @@ class TclAndroidTvRemoteMediaPlayerEntity(
         await self._sources.async_select(source)
         self.async_write_ha_state()
 
+    @callback
+    def async_entity_id_changed(self, old_entity_id: str) -> None:
+        """Keep running when the entity ID is changed (Home Assistant 2026.11+).
+
+        Nothing here is keyed on the entity ID, so the entity carries on as is.
+        """
+        parent = getattr(super(), "async_entity_id_changed", None)
+        if parent is not None:
+            parent(old_entity_id)
+
     @override
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""

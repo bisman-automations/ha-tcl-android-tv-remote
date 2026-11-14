@@ -38,6 +38,16 @@ class TclSourceSelect(TclAndroidTvRemoteBaseEntity, SelectEntity):
         self._sources = config_entry.runtime_data.sources
         self._attr_unique_id = f"{config_entry.unique_id}_source_select"
 
+    @callback
+    def async_entity_id_changed(self, old_entity_id: str) -> None:
+        """Keep running when the entity ID is changed (Home Assistant 2026.11+).
+
+        Nothing here is keyed on the entity ID, so the entity carries on as is.
+        """
+        parent = getattr(super(), "async_entity_id_changed", None)
+        if parent is not None:
+            parent(old_entity_id)
+
     @override
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()

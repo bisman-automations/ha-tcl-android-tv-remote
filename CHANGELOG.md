@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.6] - 2026-11-14
 
+### Changed
+
+- **Renaming an entity keeps it running.** From Home Assistant 2026.11, when you change one of this integration's entity IDs, the entity moves to its new ID in place instead of being removed and added again, as Home Assistant now expects. Everything keeps working the same.
+
 ### Fixed
 
 - **Wireless debugging pairing with a code works.** Pairing with a pairing code failed with "No module named 'spake2'" because Home Assistant didn't install the two libraries pairing needs. They're now installed with the integration, so pair again after updating and restarting Home Assistant.
