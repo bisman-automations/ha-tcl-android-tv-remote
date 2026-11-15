@@ -21,10 +21,9 @@
     "adb-shell>=0.4.4",
     "adb-shell-wifi[wifi]==0.5.0",
     "androidtvremote2>=0.2.3",
-    "pyOpenSSL>=22.0.0",
     "spake2-cffi>=1.0.0"
   ],
-  "version": "1.1.7",
+  "version": "1.1.8",
   "zeroconf": [
     "_androidtvremote2._tcp.local."
   ]

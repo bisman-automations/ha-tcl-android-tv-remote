@@ -27,7 +27,8 @@ def test_manifest_lists_the_extra_itself() -> None:
     and version only, ignoring extras. On an install that already had
     adb-shell-wifi 0.5.0, "adb-shell-wifi[wifi]==0.5.0" counted as installed
     and spake2 never came. Every package of the extra that Home Assistant
-    doesn't ship itself must be in the manifest by its own name.
+    doesn't ship itself must be in the manifest by its own name (hassfest
+    refuses the ones it does ship, such as pyOpenSSL and zeroconf).
     """
     from importlib.metadata import requires  # noqa: PLC0415
 
@@ -42,7 +43,8 @@ def test_manifest_lists_the_extra_itself() -> None:
         for r in requires("adb-shell-wifi") or []
         if 'extra == "wifi"' in r
     }
-    assert extra - {"zeroconf"} <= listed
+    assert extra - {"zeroconf", "pyopenssl"} <= listed
+    assert not listed & {"zeroconf", "pyopenssl"}
 
 
 def test_pairing_handshake_can_start() -> None:

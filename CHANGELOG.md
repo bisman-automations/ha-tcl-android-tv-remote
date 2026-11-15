@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.8] - 2026-11-15
+
+### Fixed
+
+- **Passes Home Assistant's checks again.** 1.1.7 also listed pyOpenSSL as a requirement. Home Assistant already includes it and doesn't allow integrations to list it, so it's gone again. Pairing with a code still gets what it needs.
+
 ## [1.1.7] - 2026-11-15
 
 ### Fixed
@@ -126,6 +132,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Discovery only offers TVs that identify as TCL.
   - Minimum Home Assistant version: 2025.8.0.
 
+[1.1.8]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.7...v1.1.8
 [1.1.7]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.6...v1.1.7
 [1.1.6]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.5...v1.1.6
 [1.1.5]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.4...v1.1.5

@@ -6,5 +6,4 @@ pytest-homeassistant-custom-component==0.13.357
 adb-shell>=0.4.4
 adb-shell-wifi[wifi]==0.5.0
 androidtvremote2>=0.3.2
-pyOpenSSL>=22.0.0
 spake2-cffi>=1.0.0
