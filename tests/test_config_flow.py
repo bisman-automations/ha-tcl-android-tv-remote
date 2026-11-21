@@ -181,6 +181,7 @@ async def test_options_default_apps_not_readded(hass: HomeAssistant) -> None:
         result["flow_id"], {"add_default_apps": True}
     )
     assert "com.netflix.ninja" in entry.options[CONF_APPS]
+    await hass.async_block_till_done()
 
 
 async def test_options_add_and_delete_app(hass: HomeAssistant) -> None:
@@ -211,6 +212,7 @@ async def test_options_add_and_delete_app(hass: HomeAssistant) -> None:
         result["flow_id"], {"app_delete": True}
     )
     assert CONF_APPS not in entry.options
+    await hass.async_block_till_done()
 
 
 async def test_options_settings_classic_fills_port(hass: HomeAssistant) -> None:
@@ -232,6 +234,7 @@ async def test_options_settings_classic_fills_port(hass: HomeAssistant) -> None:
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert entry.options[CONF_ADB_PORT] == 5555
     assert entry.options[CONF_ADB_MODE] == ADB_MODE_CLASSIC
+    await hass.async_block_till_done()
 
 
 async def test_options_adb_pair_reachable_and_switches_to_tls(
@@ -258,6 +261,7 @@ async def test_options_adb_pair_reachable_and_switches_to_tls(
     assert entry.options[CONF_ADB_MODE] == ADB_MODE_TLS
     assert entry.options[CONF_ADB_PORT] == 44491
     assert entry.options[CONF_ENABLE_ADB] is True
+    await hass.async_block_till_done()
 
 
 async def test_reauth_flow(hass: HomeAssistant, mock_api) -> None:
@@ -275,6 +279,7 @@ async def test_reauth_flow(hass: HomeAssistant, mock_api) -> None:
     )
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reauth_successful"
+    await hass.async_block_till_done()
 
 
 async def test_reauth_wrong_pin_stays_on_pair(hass: HomeAssistant, mock_api) -> None:
@@ -303,6 +308,7 @@ async def test_reconfigure_updates_host(hass: HomeAssistant) -> None:
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reconfigure_successful"
     assert entry.data[CONF_HOST] == "192.0.2.20"
+    await hass.async_block_till_done()
 
 
 async def test_reconfigure_rejects_different_tv(hass: HomeAssistant, mock_api) -> None:

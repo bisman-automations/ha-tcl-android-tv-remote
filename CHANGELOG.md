@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.9] - 2026-11-20
+
+### Fixed
+
+- **Tests are steady on the upcoming Home Assistant 2026.12.** A few settings, reconfigure and re-pairing tests finished before the reload they start had run, which failed now and then against Home Assistant 2026.12's development build. They now wait for it. Nothing changes for you.
+
+### Changed
+
+- **Test tools updated.** Ruff 0.17.6, and the tests use androidtvremote2 0.3.3 and spake2-cffi 1.0.1. androidtvremote2 0.3.3 fixes text sent to TCL TVs arriving out of order or not at all. Home Assistant 2026.12 is set to include it, so that fix reaches you when you update Home Assistant.
+
 ## [1.1.8] - 2026-11-15
 
 ### Fixed
@@ -132,6 +142,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Discovery only offers TVs that identify as TCL.
   - Minimum Home Assistant version: 2025.8.0.
 
+[1.1.9]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.8...v1.1.9
 [1.1.8]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.7...v1.1.8
 [1.1.7]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.6...v1.1.7
 [1.1.6]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.5...v1.1.6
