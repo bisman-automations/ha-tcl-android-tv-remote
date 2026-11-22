@@ -88,7 +88,7 @@ To enable Developer options, open **Settings → System → About** and press **
 | Refresh HDMI (button, diagnostic) | Rediscover HDMI inputs. Adds back an input you removed when the TV still reports it — ADB only |
 | Rebuild sources (button, configuration) | Forget every saved HDMI input and custom name, then discover inputs again — ADB only |
 
-When ADB goes offline, a repair issue explains what to check on the TV. It clears itself when ADB reconnects.
+When ADB goes offline, a repair issue explains what to check on the TV. It clears itself when ADB reconnects, or when you disable or remove the integration.
 
 ## Options
 
@@ -139,7 +139,7 @@ The TV remembers input names, and Home Assistant keeps the inputs it has already
 
 ### Diagnostics and debug logs
 
-When something goes wrong, download diagnostics from **Settings → Devices & services → TCL Android TV Remote → ⋮ → Download diagnostics** and check the file before you share it.
+When something goes wrong, download diagnostics from **Settings → Devices & services → TCL Android TV Remote → ⋮ → Download diagnostics** and check the file before you share it. The TV's IP address and MAC address are replaced with `**REDACTED**`, including inside error messages.
 
 For debug logs, use **Enable debug logging** on the integration page, or add this to `configuration.yaml` and restart:
 

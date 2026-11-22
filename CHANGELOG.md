@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.10] - 2026-11-22
+
+### Fixed
+
+- **Diagnostics no longer show your TV's address in error messages.** The IP and MAC address were already hidden in the settings part of the file, but an ADB error such as "Connect call failed" still quoted the IP. They're now hidden everywhere in the file.
+- **ADB shows as unknown, not disconnected, right after a restart.** The first ADB check runs in the background and can take up to half a minute. Until it finishes, the ADB sensor now shows unknown instead of a brief disconnect in its history.
+- **The "ADB offline" repair goes away when you disable the integration.** It used to stay in Repairs until Home Assistant restarted, even though nothing was checking ADB any more.
+
 ## [1.1.9] - 2026-11-20
 
 ### Fixed
@@ -142,6 +150,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Discovery only offers TVs that identify as TCL.
   - Minimum Home Assistant version: 2025.8.0.
 
+[1.1.10]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.9...v1.1.10
 [1.1.9]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.8...v1.1.9
 [1.1.8]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.7...v1.1.8
 [1.1.7]: https://github.com/bisman-automations/ha-tcl-android-tv-remote/compare/v1.1.6...v1.1.7

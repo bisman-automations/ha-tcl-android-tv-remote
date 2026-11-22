@@ -343,3 +343,65 @@ async def test_channel_entry(hass: HomeAssistant, mock_api) -> None:
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
     await started
+
+
+async def test_diagnostics_scrub_address_from_errors(hass: HomeAssistant) -> None:
+    """ADB errors quote the TV's address; diagnostics must not show it."""
+    from custom_components.tcl_android_tv_remote.diagnostics import (
+        async_get_config_entry_diagnostics,
+    )
+
+    entry = make_entry(CLASSIC_OPTIONS)
+    adb = _fake_adb(alive=False)
+    adb.last_error = (
+        "ConnectionRefusedError: [Errno 111] Connect call failed "
+        "('192.0.2.10', 5555) for 1a:2b:3c:4d:5e:6f"
+    )
+    await _setup(hass, entry, adb)
+    diag = await async_get_config_entry_diagnostics(hass, entry)
+    text = repr(diag)
+    assert "192.0.2.10" not in text
+    assert "1a:2b:3c:4d:5e:6f" not in text.lower()
+    assert "Connect call failed ('**REDACTED**', 5555)" in diag["adb"]["last_error"]
+
+
+async def test_adb_connected_unknown_before_first_check(hass: HomeAssistant) -> None:
+    """Until the first ADB check finishes, Connected is unknown, not off."""
+    entry = make_entry(CLASSIC_OPTIONS)
+    adb = _fake_adb()
+    started = asyncio.Event()
+    release = asyncio.Event()
+
+    async def _slow_refresh(self):
+        started.set()
+        await release.wait()
+
+    entry.add_to_hass(hass)
+    with (
+        patch("custom_components.tcl_android_tv_remote.create_adb", return_value=adb),
+        patch(
+            "custom_components.tcl_android_tv_remote.AdbDataCoordinator.async_refresh",
+            _slow_refresh,
+        ),
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await started.wait()
+        registry = er.async_get(hass)
+        entity_id = registry.async_get_entity_id(
+            "binary_sensor", DOMAIN, f"{entry.unique_id}_adb_connected"
+        )
+        assert entity_id
+        assert hass.states.get(entity_id).state == "unknown"
+        release.set()
+        await hass.async_block_till_done()
+
+
+async def test_unload_clears_adb_offline_issue(hass: HomeAssistant) -> None:
+    """A stopped entry doesn't leave its ADB offline warning behind."""
+    entry = make_entry(CLASSIC_OPTIONS)
+    await _setup(hass, entry, _fake_adb(alive=False))
+    issues = ir.async_get(hass)
+    issue_id = f"adb_offline_{entry.entry_id}"
+    assert issues.async_get_issue(DOMAIN, issue_id)
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    assert issues.async_get_issue(DOMAIN, issue_id) is None

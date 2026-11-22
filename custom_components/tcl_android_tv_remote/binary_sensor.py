@@ -63,10 +63,12 @@ class TclAdbConnectedBinarySensor(
 
     @property
     @override
-    def is_on(self) -> bool:
-        """Return True when ADB is available."""
+    def is_on(self) -> bool | None:
+        """Return True when ADB is available, None before the first check."""
         data = self.coordinator.data
-        return bool(data and data.available)
+        if data is None:
+            return None
+        return data.available
 
     @property
     @override

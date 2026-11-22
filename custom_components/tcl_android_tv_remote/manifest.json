@@ -23,7 +23,7 @@
     "androidtvremote2>=0.2.3",
     "spake2-cffi>=1.0.0"
   ],
-  "version": "1.1.9",
+  "version": "1.1.10",
   "zeroconf": [
     "_androidtvremote2._tcp.local."
   ]

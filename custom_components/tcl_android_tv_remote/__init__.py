@@ -178,8 +178,12 @@ async def async_unload_entry(
 ) -> bool:
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    if unload_ok and entry.runtime_data.adb:
-        await hass.async_add_executor_job(entry.runtime_data.adb.close)
+    if unload_ok:
+        # A stopped or disabled entry no longer checks ADB, so its warning
+        # would never clear. Setup raises it again if ADB is still down.
+        ir.async_delete_issue(hass, DOMAIN, adb_issue_id(entry.entry_id))
+        if entry.runtime_data.adb:
+            await hass.async_add_executor_job(entry.runtime_data.adb.close)
     return unload_ok
 
 
